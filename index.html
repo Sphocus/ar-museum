@@ -54,11 +54,11 @@ function render(){
   if(ex){
     // With WebXR (Android Chrome) we run our own surface-detection + tap-to-place AR.
     // Without it (iPhone) model-viewer's built-in AR (Quick Look) is used instead.
-    const fallback=xrOK?'':'ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
+    const fallback='ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
     app.innerHTML=`<a href="#">← All exhibits</a>
     <div class="card big" style="position:relative;margin-top:10px">
       <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" ${fallback}>
-        ${xrOK?'':'<button slot="ar-button" class="ar">View in your space</button>'}
+        <button slot="ar-button" class="ar">${xrOK?'Simple AR (Google viewer)':'View in your space'}</button>
       </model-viewer>
       <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>
       ${xrOK?`<button class="arbtn" id="go-ar">Place in your space</button>
@@ -133,7 +133,7 @@ async function startAR(ex,btn){
   }catch(e){
     ui.style.display='none';cur=null;
     btn.disabled=false;btn.textContent=label;
-    alert('Could not start AR: '+(e&&e.message?e.message:e)+'\nThis needs an ARCore-supported Android phone using Chrome.');
+    alert('Tap-to-place AR could not start on this phone.\n\nReason: '+(e&&e.message?e.message:e)+'\n\nYou can still use the “Simple AR (Google viewer)” button on the model.');
   }
 }
 

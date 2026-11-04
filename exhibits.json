@@ -2,6 +2,13 @@
   "museumName": "My AR Museum",
   "exhibits": [
     {
+      "id": "skull",
+      "title": "Skull",
+      "description": "",
+      "model": "models/My%20Skull.glb",
+      "scale": 0.2
+    },
+    {
       "id": "cube",
       "title": "Sample cube",
       "description": "Built-in test cube (no model file needed). Replace with your own exhibit later.",

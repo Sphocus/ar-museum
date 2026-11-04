@@ -65,6 +65,11 @@ function render(){
       <p class="muted">Point your phone at the floor or a table. When a ring appears on the surface, tap to place the model. Tap elsewhere to move it.</p>`
       :`<p class="muted">Tap “View in your space”, point at the floor, then place the model.</p>`}</div></div>`;
     const b=document.getElementById('go-ar');if(b)b.onclick=()=>startAR(ex,b);
+    const mv=app.querySelector('model-viewer'),st=document.createElement('p');st.className='muted';
+    st.textContent='Model: loading… ('+(ex.model.startsWith('data:')?'built-in':new URL(ex.model,location.href).href)+')';
+    app.querySelector('.b').appendChild(st);
+    mv.addEventListener('load',()=>{st.textContent='Model: loaded OK'});
+    mv.addEventListener('error',e=>{st.textContent='Model: FAILED to load ('+((e.detail&&e.detail.sourceError&&e.detail.sourceError.message)||'unknown')+')'});
   }else{
     app.innerHTML=`<h1>${esc(cfg.museumName||'AR Museum')}</h1><p class="muted">Scan an exhibit’s QR code, or pick one below, then place it in your space.</p>
     <div class="grid">${cfg.exhibits.map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
@@ -103,7 +108,7 @@ async function startAR(ex,btn){
     controller.addEventListener('select',()=>{
       if(!reticle.visible)return;
       if(!state.obj){
-        state.obj=template.clone(true);scene.add(state.obj);
+        state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);
         const q=renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion());
         state.obj.rotation.y=new THREE.Euler().setFromQuaternion(q,'YXZ').y; // face the visitor
         hint.textContent='Placed. Tap elsewhere to move it. Use the buttons to resize or rotate.';
@@ -142,7 +147,7 @@ async function startAR(ex,btn){
 /* ---------- start ---------- */
 (async()=>{
   try{xrOK=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){xrOK=false}
-  try{cfg=await (await fetch('exhibits.json')).json();document.title=cfg.museumName||'AR Museum'}
+  try{cfg=await (await fetch('exhibits.json?t='+Date.now(),{cache:'no-store'})).json();document.title=cfg.museumName||'AR Museum'}
   catch(e){app.textContent='Could not load exhibits.json. Is this page served over https?';return}
   render();
 })();

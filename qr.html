@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Printable QR codes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+@page{size:A4 portrait;margin:12mm}
+body{margin:0;padding:16px;font:18px system-ui,sans-serif;color:#000;background:#fff}
+section{text-align:center;break-after:page;page-break-after:always;margin-bottom:24px}
+svg{width:min(90vw,150mm);height:auto;display:block;margin:0 auto}
+h2{margin:8px 0 2px}p{margin:2px 0;color:#444;font-size:14px;word-break:break-all}
+@media screen{section{border-bottom:1px solid #ddd;padding-bottom:24px}}
+</style>
+</head>
+<body>
+<p>Print each QR code and put it beside its exhibit. Scanning it opens that exhibit in AR.</p>
+<div id="out"></div>
+<script>
+fetch('exhibits.json').then(r=>r.json()).then(cfg=>{
+  const base=location.href.replace(/qr\.html.*$/,'index.html');
+  document.getElementById('out').innerHTML=cfg.exhibits.map(e=>{
+    const url=base+'#'+e.id,q=qrcode(0,'M');q.addData(url);q.make();
+    return `<section>${q.createSvgTag(8)}<h2>${e.title}</h2><p>${url}</p></section>`}).join('');
+});
+</script>
+</body>
+</html>

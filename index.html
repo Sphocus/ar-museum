@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AR Museum</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--text:#1f1d1a;--muted:#6d6860;--accent:#8c2f39;--line:#e2ddd3}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#232120;--text:#f2efe9;--muted:#a39e95;--accent:#e08a93;--line:#38352f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Georgia,serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.8rem;margin:0}h2{margin:0 0 4px}
+.muted{color:var(--muted);font-family:system-ui,sans-serif;font-size:.92rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{cursor:pointer}.b{padding:12px 14px}
+model-viewer{width:100%;height:230px;--poster-color:transparent}
+.big model-viewer{height:min(55vh,480px)}
+.arbtn,.ar{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:13px 24px;font:600 1rem system-ui;cursor:pointer}
+.ar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.arbtn{display:block;width:100%;margin-top:12px}
+.arbtn:disabled{opacity:.6}
+a{color:var(--accent);font-family:system-ui,sans-serif}
+/* AR overlay (shown only while an AR session is running) */
+#xr-ui{display:none;position:fixed;inset:0;pointer-events:none;color:#fff;font-family:system-ui,sans-serif}
+#xr-hint{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;text-align:center;background:rgba(0,0,0,.6);padding:10px 14px;border-radius:12px}
+#xr-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;flex-wrap:wrap;pointer-events:auto}
+#xr-bar button{font:600 15px system-ui;padding:12px 16px;border:0;border-radius:999px;background:rgba(0,0,0,.7);color:#fff}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="xr-ui">
+  <div id="xr-hint">Move your phone slowly over the floor or a table…</div>
+  <div id="xr-bar">
+    <button id="x-small">Smaller</button><button id="x-big">Bigger</button>
+    <button id="x-rot">Rotate</button><button id="x-reset">Reset</button><button id="x-exit">Exit</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+
+let cfg={exhibits:[]},xrOK=false;
+const app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- gallery / exhibit pages ---------- */
+function render(){
+  const id=location.hash.slice(1),ex=cfg.exhibits.find(e=>e.id===id);
+  if(ex){
+    // With WebXR (Android Chrome) we run our own surface-detection + tap-to-place AR.
+    // Without it (iPhone) model-viewer's built-in AR (Quick Look) is used instead.
+    const fallback=xrOK?'':'ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
+    app.innerHTML=`<a href="#">← All exhibits</a>
+    <div class="card big" style="position:relative;margin-top:10px">
+      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" ${fallback}>
+        ${xrOK?'':'<button slot="ar-button" class="ar">View in your space</button>'}
+      </model-viewer>
+      <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>
+      ${xrOK?`<button class="arbtn" id="go-ar">Place in your space</button>
+      <p class="muted">Point your phone at the floor or a table. When a ring appears on the surface, tap to place the model. Tap elsewhere to move it.</p>`
+      :`<p class="muted">Tap “View in your space”, point at the floor, then place the model.</p>`}</div></div>`;
+    const b=document.getElementById('go-ar');if(b)b.onclick=()=>startAR(ex,b);
+  }else{
+    app.innerHTML=`<h1>${esc(cfg.museumName||'AR Museum')}</h1><p class="muted">Scan an exhibit’s QR code, or pick one below, then place it in your space.</p>
+    <div class="grid">${cfg.exhibits.map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
+    <p class="muted" style="margin-top:24px"><a href="qr.html">Printable QR codes</a></p>`;
+    app.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>location.hash=el.dataset.go);
+  }
+}
+
+/* ---------- WebXR: detect surfaces (hit-test) and tap to place ---------- */
+const ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
+let cur=null; // current AR session state
+document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault()); // button taps must not place the model
+const grow=f=>{if(cur&&cur.obj)cur.obj.scale.multiplyScalar(f)};
+document.getElementById('x-small').onclick=()=>grow(1/1.2);
+document.getElementById('x-big').onclick=()=>grow(1.2);
+document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj)cur.obj.rotation.y+=Math.PI/4};
+document.getElementById('x-reset').onclick=()=>{if(cur&&cur.obj){cur.scene.remove(cur.obj);cur.obj=null;hint.textContent='Tap a surface to place the model.'}};
+document.getElementById('x-exit').onclick=()=>{if(cur)cur.session.end()};
+
+async function startAR(ex,btn){
+  const label=btn.textContent;
+  try{
+    btn.disabled=true;btn.textContent='Loading model…';
+    const template=(await new GLTFLoader().loadAsync(ex.model)).scene;
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
+    const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,30);
+    scene.add(new THREE.HemisphereLight(0xffffff,0xbbbbff,1.3));
+    const sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(1,3,2);scene.add(sun);
+    const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff}));
+    reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+    const state={scene,obj:null,session:null};cur=state;
+    const controller=renderer.xr.getController(0);scene.add(controller);
+    controller.addEventListener('select',()=>{
+      if(!reticle.visible)return;
+      if(!state.obj){
+        state.obj=template.clone(true);scene.add(state.obj);
+        const q=renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion());
+        state.obj.rotation.y=new THREE.Euler().setFromQuaternion(q,'YXZ').y; // face the visitor
+        hint.textContent='Placed. Tap elsewhere to move it. Use the buttons to resize or rotate.';
+      }
+      state.obj.position.setFromMatrixPosition(reticle.matrix);
+    });
+    ui.style.display='block';hint.textContent='Move your phone slowly over the floor or a table…';
+    const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
+    state.session=session;
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(session);
+    const viewer=await session.requestReferenceSpace('viewer');
+    const source=await session.requestHitTestSource({space:viewer});
+    session.addEventListener('end',()=>{
+      renderer.setAnimationLoop(null);ui.style.display='none';cur=null;renderer.dispose();
+      btn.disabled=false;btn.textContent=label;
+    });
+    renderer.setAnimationLoop((t,frame)=>{
+      if(frame){
+        const hits=frame.getHitTestResults(source);
+        if(hits.length){
+          const pose=hits[0].getPose(renderer.xr.getReferenceSpace());
+          reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);
+          if(!state.obj)hint.textContent='Surface found. Tap to place the model.';
+        }else{reticle.visible=false;if(!state.obj)hint.textContent='Move your phone slowly over the floor or a table…'}
+      }
+      renderer.render(scene,camera);
+    });
+  }catch(e){
+    ui.style.display='none';cur=null;
+    btn.disabled=false;btn.textContent=label;
+    alert('Could not start AR: '+(e&&e.message?e.message:e)+'\nThis needs an ARCore-supported Android phone using Chrome.');
+  }
+}
+
+/* ---------- start ---------- */
+(async()=>{
+  try{xrOK=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){xrOK=false}
+  try{cfg=await (await fetch('exhibits.json')).json();document.title=cfg.museumName||'AR Museum'}
+  catch(e){app.textContent='Could not load exhibits.json. Is this page served over https?';return}
+  render();
+})();
+window.addEventListener('hashchange',render);
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "museumName": "My AR Museum",
+  "exhibits": [
+    {
+      "id": "cube",
+      "title": "Sample cube",
+      "description": "Replace this with your own exhibit.",
+      "model": "models/sample-cube.glb"
+    }
+  ]
+}

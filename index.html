@@ -88,7 +88,9 @@ async function startAR(ex,btn){
   const label=btn.textContent;
   try{
     btn.disabled=true;btn.textContent='Loading model…';
-    const template=(await new GLTFLoader().loadAsync(ex.model)).scene;
+    let template;
+    try{template=(await new GLTFLoader().loadAsync(ex.model)).scene}
+    catch(err){throw new Error('could not load the model file at '+(ex.model.startsWith('data:')?'(built-in)':new URL(ex.model,location.href).href)+' ('+(err&&err.message?err.message:err)+')')}
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,30);

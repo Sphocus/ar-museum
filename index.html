@@ -83,7 +83,7 @@ function render(){
 const ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
 let cur=null; // current AR session state
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault()); // button taps must not place the model
-const grow=f=>{if(cur&&cur.obj)cur.obj.scale.multiplyScalar(f)};
+const grow=f=>{if(cur&&cur.obj){cur.obj.scale.multiplyScalar(f);if(cur.baseY!==undefined)cur.obj.position.y=cur.baseY-(cur.minY||0)*cur.obj.scale.y}};
 document.getElementById('x-small').onclick=()=>grow(1/1.2);
 document.getElementById('x-big').onclick=()=>grow(1.2);
 document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj){cur.spin=(cur.spin||0)+Math.PI/4;cur.obj.rotation.y+=Math.PI/4}};
@@ -108,7 +108,8 @@ async function startAR(ex,btn){
     const controller=renderer.xr.getController(0);scene.add(controller);
     controller.addEventListener('select',()=>{
       if(!reticle.visible)return;
-      if(!state.obj){state.obj=SkeletonUtils.clone(template);if(clips.length){state.mixer=new THREE.AnimationMixer(state.obj);clips.forEach(c=>state.mixer.clipAction(c).play())}state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
+      if(!state.obj){state.obj=SkeletonUtils.clone(template);{const b=new THREE.Box3().setFromObject(state.obj);state.minY=isFinite(b.min.y)?b.min.y:0}   // lowest point of the model at full size, so its feet can rest on the surface
+        if(clips.length){state.mixer=new THREE.AnimationMixer(state.obj);clips.forEach(c=>state.mixer.clipAction(c).play())}state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
         hint.textContent='Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate.'}
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
@@ -117,6 +118,7 @@ async function startAR(ex,btn){
         state.obj.rotation.y=yaw+((+ex.rotation||0)*Math.PI/180)+state.spin;   // plus the model's own front fix and any manual Rotate
       }
       state.obj.position.setFromMatrixPosition(reticle.matrix);
+      state.baseY=state.obj.position.y;state.obj.position.y=state.baseY-(state.minY||0)*state.obj.scale.y;   // sit the lowest point on the surface
     });
     ui.style.display='block';hint.textContent='Move your phone slowly over the floor or a table…';
     const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});

@@ -100,9 +100,10 @@ async function start(btn){
       for(const {L,ex,g,clips} of items){
         const o=SkeletonUtils.clone(g);
         if(clips.length){const mx=new THREE.AnimationMixer(o);clips.forEach(c=>mx.clipAction(c).play());state.mixers.push(mx)}
-        o.scale.setScalar((+ex.scale||1)*(+L.scale||1));
+        const bb=new THREE.Box3().setFromObject(o),minY=isFinite(bb.min.y)?bb.min.y:0;   // lowest point at full size
+        const sc=(+ex.scale||1)*(+L.scale||1);o.scale.setScalar(sc);
         const x=+L.x||0,z=+L.z||0;
-        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0),oz+rz*x+fz*z);
+        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
         o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
         group.add(o);
       }

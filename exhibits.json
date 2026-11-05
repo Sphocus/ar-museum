@@ -6,7 +6,8 @@
       "title": "Skull",
       "description": "",
       "model": "models/skull.glb",
-      "scale": 0.25
+      "scale": 0.25,
+      "rotation": -90
     },
     {
       "id": "cube",
@@ -21,7 +22,7 @@
       "exhibit": "skull",
       "x": -0.7,
       "z": 1.8,
-      "rotation": -90
+      "rotation": 0
     },
     {
       "exhibit": "cube",

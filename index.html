@@ -85,7 +85,7 @@ document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.prevent
 const grow=f=>{if(cur&&cur.obj)cur.obj.scale.multiplyScalar(f)};
 document.getElementById('x-small').onclick=()=>grow(1/1.2);
 document.getElementById('x-big').onclick=()=>grow(1.2);
-document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj)cur.obj.rotation.y+=Math.PI/4};
+document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj){cur.spin=(cur.spin||0)+Math.PI/4;cur.obj.rotation.y+=Math.PI/4}};
 document.getElementById('x-reset').onclick=()=>{if(cur&&cur.obj){cur.scene.remove(cur.obj);cur.obj=null;hint.textContent='Tap a surface to place the model.'}};
 document.getElementById('x-exit').onclick=()=>{if(cur)cur.session.end()};
 
@@ -107,15 +107,13 @@ async function startAR(ex,btn){
     const controller=renderer.xr.getController(0);scene.add(controller);
     controller.addEventListener('select',()=>{
       if(!reticle.visible)return;
-      if(!state.obj){
-        state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);
-        const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
-        const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-        let yaw;
-        if(Math.hypot(cam.x-p.x,cam.z-p.z)>0.25)yaw=Math.atan2(cam.x-p.x,cam.z-p.z);   // turn toward where the visitor stands
-        else yaw=new THREE.Euler().setFromQuaternion(renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion()),'YXZ').y;
-        state.obj.rotation.y=yaw+(+ex.rotation||0)*Math.PI/180;   // plus this model's own front-direction fix
-        hint.textContent='Placed. Tap elsewhere to move it. Use the buttons to resize or rotate.';
+      if(!state.obj){state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
+        hint.textContent='Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate.'}
+      const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
+      const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+      if(Math.hypot(cam.x-p.x,cam.z-p.z)>0.25){
+        const yaw=Math.atan2(cam.x-p.x,cam.z-p.z);   // turn toward where the visitor stands, every time it is placed or moved
+        state.obj.rotation.y=yaw+((+ex.rotation||0)*Math.PI/180)+state.spin;   // plus the model's own front fix and any manual Rotate
       }
       state.obj.position.setFromMatrixPosition(reticle.matrix);
     });

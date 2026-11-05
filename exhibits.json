@@ -7,7 +7,7 @@
       "description": "",
       "model": "models/skull.glb",
       "scale": 0.25
-      "rotation": -90
+      "rotation": -90,
     },
     {
       "id": "cube",

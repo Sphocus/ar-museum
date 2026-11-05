@@ -20,7 +20,11 @@ h2{margin:8px 0 2px}p{margin:2px 0;color:#444;font-size:14px;word-break:break-al
 <script>
 fetch('exhibits.json').then(r=>r.json()).then(cfg=>{
   const base=location.href.replace(/qr\.html.*$/,'index.html');
-  document.getElementById('out').innerHTML=cfg.exhibits.map(e=>{
+  const ent=base.replace('index.html','exhibition.html');
+  let head='';
+  if(cfg.layout&&cfg.layout.length){const qq=qrcode(0,'M');qq.addData(ent);qq.make();
+    head=`<section>${qq.createSvgTag(8)}<h2>Entrance: start the exhibition</h2><p>${ent}</p></section>`}
+  document.getElementById('out').innerHTML=head+cfg.exhibits.map(e=>{
     const url=base+'#'+e.id,q=qrcode(0,'M');q.addData(url);q.make();
     return `<section>${q.createSvgTag(8)}<h2>${e.title}</h2><p>${url}</p></section>`}).join('');
 });

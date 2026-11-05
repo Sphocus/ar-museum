@@ -101,7 +101,7 @@ async function start(btn){
         o.scale.setScalar((+ex.scale||1)*(+L.scale||1));
         const x=+L.x||0,z=+L.z||0;
         o.position.set(ox+rx*x+fx*z,oy+(+L.y||0),oz+rz*x+fz*z);
-        o.rotation.y=th+(+L.rotation||0)*Math.PI/180;
+        o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
         group.add(o);
       }
       state.placed=true;

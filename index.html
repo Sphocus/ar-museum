@@ -57,7 +57,7 @@ function render(){
     const fallback='ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
     app.innerHTML=`<a href="#">← All exhibits</a>
     <div class="card big" style="position:relative;margin-top:10px">
-      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" ${fallback}>
+      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${fallback}>
         <button slot="ar-button" class="ar">${xrOK?'Simple AR (Google viewer)':'View in your space'}</button>
       </model-viewer>
       <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>
@@ -110,7 +110,7 @@ async function startAR(ex,btn){
       if(!state.obj){
         state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);
         const q=renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion());
-        state.obj.rotation.y=new THREE.Euler().setFromQuaternion(q,'YXZ').y; // face the visitor
+        state.obj.rotation.y=new THREE.Euler().setFromQuaternion(q,'YXZ').y+(+ex.rotation||0)*Math.PI/180; // face the visitor, plus this model's own front-direction fix
         hint.textContent='Placed. Tap elsewhere to move it. Use the buttons to resize or rotate.';
       }
       state.obj.position.setFromMatrixPosition(reticle.matrix);

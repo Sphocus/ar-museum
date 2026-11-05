@@ -90,7 +90,7 @@ async function start(btn){
     controller.addEventListener('select',()=>{
       if(state.placed||!reticle.visible)return;
       const hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
-      const cam=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
+      const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
       if(len<0.4){hint.textContent='Aim a little further ahead (about 2 m), then tap.';return}
       fx/=len;fz/=len;
@@ -120,6 +120,7 @@ async function start(btn){
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{
+      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position;state.cam=new THREE.Vector3(t.x,t.y,t.z)}}
       if(frame&&!state.placed){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}

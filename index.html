@@ -109,7 +109,7 @@ async function startAR(ex,btn){
       if(!reticle.visible)return;
       if(!state.obj){
         state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);
-        const cam=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
+        const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
         const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
         let yaw;
         if(Math.hypot(cam.x-p.x,cam.z-p.z)>0.25)yaw=Math.atan2(cam.x-p.x,cam.z-p.z);   // turn toward where the visitor stands
@@ -132,6 +132,8 @@ async function startAR(ex,btn){
     });
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){
+        const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());
+        if(vp){const t=vp.transform.position;state.cam=new THREE.Vector3(t.x,t.y,t.z)}
         const hits=frame.getHitTestResults(source);
         if(hits.length){
           const pose=hits[0].getPose(renderer.xr.getReferenceSpace());

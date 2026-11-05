@@ -43,6 +43,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 <script type="module">
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 let cfg={exhibits:[]},xrOK=false;
 const app=document.getElementById('app');
@@ -57,7 +58,7 @@ function render(){
     const fallback='ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
     app.innerHTML=`<a href="#">← All exhibits</a>
     <div class="card big" style="position:relative;margin-top:10px">
-      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${fallback}>
+      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate autoplay shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${fallback}>
         <button slot="ar-button" class="ar">${xrOK?'Simple AR (Google viewer)':'View in your space'}</button>
       </model-viewer>
       <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>
@@ -72,7 +73,7 @@ function render(){
     mv.addEventListener('error',e=>{st.textContent='Model: FAILED to load ('+((e.detail&&e.detail.sourceError&&e.detail.sourceError.message)||'unknown')+')'});
   }else{
     app.innerHTML=`<h1>${esc(cfg.museumName||'AR Museum')}</h1><p class="muted">Scan an exhibit’s QR code, or pick one below, then place it in your space.</p>
-    <div class="grid">${cfg.exhibits.map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
+    <div class="grid">${cfg.exhibits.map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate autoplay interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
     <p class="muted" style="margin-top:24px"><a href="qr.html">Printable QR codes</a></p>`;
     app.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>location.hash=el.dataset.go);
   }
@@ -86,15 +87,15 @@ const grow=f=>{if(cur&&cur.obj)cur.obj.scale.multiplyScalar(f)};
 document.getElementById('x-small').onclick=()=>grow(1/1.2);
 document.getElementById('x-big').onclick=()=>grow(1.2);
 document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj){cur.spin=(cur.spin||0)+Math.PI/4;cur.obj.rotation.y+=Math.PI/4}};
-document.getElementById('x-reset').onclick=()=>{if(cur&&cur.obj){cur.scene.remove(cur.obj);cur.obj=null;hint.textContent='Tap a surface to place the model.'}};
+document.getElementById('x-reset').onclick=()=>{if(cur&&cur.obj){cur.scene.remove(cur.obj);cur.obj=null;cur.mixer=null;hint.textContent='Tap a surface to place the model.'}};
 document.getElementById('x-exit').onclick=()=>{if(cur)cur.session.end()};
 
 async function startAR(ex,btn){
   const label=btn.textContent;
   try{
     btn.disabled=true;btn.textContent='Loading model…';
-    let template;
-    try{template=(await new GLTFLoader().loadAsync(ex.model)).scene}
+    let template,clips=[];
+    try{const gl=await new GLTFLoader().loadAsync(ex.model);template=gl.scene;clips=gl.animations||[]}
     catch(err){throw new Error('could not load the model file at '+(ex.model.startsWith('data:')?'(built-in)':new URL(ex.model,location.href).href)+' ('+(err&&err.message?err.message:err)+')')}
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
@@ -103,11 +104,11 @@ async function startAR(ex,btn){
     const sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(1,3,2);scene.add(sun);
     const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff}));
     reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
-    const state={scene,obj:null,session:null};cur=state;
+    const state={scene,obj:null,session:null,mixer:null};cur=state;const clock=new THREE.Clock();
     const controller=renderer.xr.getController(0);scene.add(controller);
     controller.addEventListener('select',()=>{
       if(!reticle.visible)return;
-      if(!state.obj){state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
+      if(!state.obj){state.obj=SkeletonUtils.clone(template);if(clips.length){state.mixer=new THREE.AnimationMixer(state.obj);clips.forEach(c=>state.mixer.clipAction(c).play())}state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
         hint.textContent='Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate.'}
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
@@ -139,6 +140,7 @@ async function startAR(ex,btn){
           if(!state.obj)hint.textContent='Surface found. Tap to place the model.';
         }else{reticle.visible=false;if(!state.obj)hint.textContent='Move your phone slowly over the floor or a table…'}
       }
+      if(state.mixer)state.mixer.update(clock.getDelta());else clock.getDelta();
       renderer.render(scene,camera);
     });
   }catch(e){

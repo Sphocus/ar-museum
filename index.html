@@ -109,8 +109,12 @@ async function startAR(ex,btn){
       if(!reticle.visible)return;
       if(!state.obj){
         state.obj=template.clone(true);state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);
-        const q=renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion());
-        state.obj.rotation.y=new THREE.Euler().setFromQuaternion(q,'YXZ').y+(+ex.rotation||0)*Math.PI/180; // face the visitor, plus this model's own front-direction fix
+        const cam=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
+        const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+        let yaw;
+        if(Math.hypot(cam.x-p.x,cam.z-p.z)>0.25)yaw=Math.atan2(cam.x-p.x,cam.z-p.z);   // turn toward where the visitor stands
+        else yaw=new THREE.Euler().setFromQuaternion(renderer.xr.getCamera().getWorldQuaternion(new THREE.Quaternion()),'YXZ').y;
+        state.obj.rotation.y=yaw+(+ex.rotation||0)*Math.PI/180;   // plus this model's own front-direction fix
         hint.textContent='Placed. Tap elsewhere to move it. Use the buttons to resize or rotate.';
       }
       state.obj.position.setFromMatrixPosition(reticle.matrix);

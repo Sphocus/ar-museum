@@ -5,7 +5,7 @@
       "id": "skull",
       "title": "Skull",
       "description": "",
-      "model": "models/My%20Skull.glb",
+      "model": "models/skull.glb",
       "scale": 0.25
     },
     {

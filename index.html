@@ -45,6 +45,8 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
+// Optional per-exhibit "solid": true stops see-through (blended) materials from showing parts of the model through each other.
+const solid=(o,ex)=>{if(ex.solid)o.traverse(c=>{if(c.isMesh)[].concat(c.material).forEach(m=>{m.transparent=false;m.depthWrite=true;m.alphaTest=0.5;m.needsUpdate=true})})};
 // Lowest point of a model at its current pose. Skinned (animated) models are measured on their real posed vertices, because a plain bounding box can be wrong for them.
 function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
   try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
@@ -99,7 +101,7 @@ async function startAR(ex,btn){
   try{
     btn.disabled=true;btn.textContent='Loading model…';
     let template,clips=[];
-    try{const gl=await new GLTFLoader().loadAsync(ex.model);template=gl.scene;clips=gl.animations||[]}
+    try{const gl=await new GLTFLoader().loadAsync(ex.model);template=gl.scene;solid(template,ex);clips=gl.animations||[]}
     catch(err){throw new Error('could not load the model file at '+(ex.model.startsWith('data:')?'(built-in)':new URL(ex.model,location.href).href)+' ('+(err&&err.message?err.message:err)+')')}
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;

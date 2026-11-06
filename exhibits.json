@@ -6,7 +6,7 @@
       "title": "Skull",
       "description": "",
       "model": "models/skull.glb",
-      "scale": 0.25,
+      "scale": 1,
       "rotation": -90,
       "ground": false
     },

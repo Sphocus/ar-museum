@@ -31,6 +31,30 @@
       "model": "models/catwoman.glb",
       "scale": 0.9,
       "rotation": 0
+    },
+    {
+      "id": "bender",
+      "title": "Bender",
+      "description": "\"BENDER\" by Jack Miles (https://sketchfab.com/3d-models/bender-108e843ee7bd4564ab29b98985705e0a), licensed CC-BY-4.0.",
+      "model": "models/bender.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "dragon-girl",
+      "title": "Dragon Girl",
+      "description": "This work is based on \"Dragon Girl\" (https://sketchfab.com/3d-models/dragon-girl-bb37e5437cbf4b0c9c6f219b93ea5c45) by Northcliffe (https://sketchfab.com/Samson.Northcliffe.Rydenko) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/).",
+      "model": "models/dragon-girl.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "alien-queen",
+      "title": "Alien Queen",
+      "description": "This work is based on \"alien_queen_posed_1\" (https://sketchfab.com/3d-models/alien-queen-posed-1-5e094d8a752f4934a56eba3a24fce8ce) by Quasar3000 (https://sketchfab.com/Quasar3000) licensed under CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/).",
+      "model": "models/alien-queen.glb",
+      "scale": 0.004,
+      "rotation": 0
     }
   ],
   "exhibitionName": "My Exhibition",

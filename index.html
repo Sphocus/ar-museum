@@ -45,6 +45,10 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
+// Lowest point of a model at its current pose. Skinned (animated) models are measured on their real posed vertices, because a plain bounding box can be wrong for them.
+function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
+  try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
+  if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
 let cfg={exhibits:[]},xrOK=false;
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -108,7 +112,7 @@ async function startAR(ex,btn){
     const controller=renderer.xr.getController(0);scene.add(controller);
     controller.addEventListener('select',()=>{
       if(!reticle.visible)return;
-      if(!state.obj){state.obj=SkeletonUtils.clone(template);{const b=new THREE.Box3().setFromObject(state.obj);state.minY=isFinite(b.min.y)?b.min.y:0}   // lowest point of the model at full size, so its feet can rest on the surface
+      if(!state.obj){state.obj=SkeletonUtils.clone(template);{const b=lowestY(state.obj);state.minY=(ex.ground===false||!isFinite(b))?0:b}   // lowest point of the model at full size, so its feet can rest on the surface
         if(clips.length){state.mixer=new THREE.AnimationMixer(state.obj);clips.forEach(c=>state.mixer.clipAction(c).play())}state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
         hint.textContent='Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate.'}
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose

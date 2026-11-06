@@ -53,7 +53,7 @@
       "title": "Alien Queen",
       "description": "This work is based on \"alien_queen_posed_1\" (https://sketchfab.com/3d-models/alien-queen-posed-1-5e094d8a752f4934a56eba3a24fce8ce) by Quasar3000 (https://sketchfab.com/Quasar3000) licensed under CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/).",
       "model": "models/alien-queen.glb",
-      "scale": 0.006,
+      "scale": 0.008,
       "rotation": 0,
       "solid": true
     }

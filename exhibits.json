@@ -66,14 +66,6 @@
       "rotation": 0
     },
     {
-      "id": "hornet",
-      "title": "Hornet",
-      "description": "This work is based on \"Hornet (Hollow Knight) T-Pose 3D Model\" (https://sketchfab.com/3d-models/hornet-hollow-knight-t-pose-3d-model-390fc5c5effe4980a4a8e49a8df0770d) by Arjun Popescu (https://sketchfab.com/arjunpopescu) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
-      "model": "models/hornet.glb",
-      "scale": 0.7,
-      "rotation": 0
-    },
-    {
       "id": "leela",
       "title": "Leela",
       "description": "This work is based on \"Leela Idle\" (https://sketchfab.com/models/3ba543ff66964b608b531730ce22ebd1) by Lada.Repina (https://sketchfab.com/Lada.Repina) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",

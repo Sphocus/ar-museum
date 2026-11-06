@@ -53,7 +53,7 @@
       "title": "Alien Queen",
       "description": "This work is based on \"alien_queen_posed_1\" (https://sketchfab.com/3d-models/alien-queen-posed-1-5e094d8a752f4934a56eba3a24fce8ce) by Quasar3000 (https://sketchfab.com/Quasar3000) licensed under CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/).",
       "model": "models/alien-queen.glb",
-      "scale": 0.010,
+      "scale": 0.01,
       "rotation": 0,
       "solid": true
     }
@@ -62,14 +62,38 @@
   "layout": [
     {
       "exhibit": "skull",
-      "x": -0.7,
+      "x": -0.8,
       "z": 1.8,
       "rotation": 0
     },
     {
-      "exhibit": "cube",
-      "x": 0.7,
+      "exhibit": "catwoman",
+      "x": 0.8,
       "z": 1.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "raptor",
+      "x": -0.8,
+      "z": 3.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "bender",
+      "x": 0.8,
+      "z": 3.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "dragon-girl",
+      "x": -0.8,
+      "z": 6.0,
+      "rotation": 0
+    },
+    {
+      "exhibit": "alien-queen",
+      "x": 1.2,
+      "z": 6.0,
       "rotation": 0
     }
   ]

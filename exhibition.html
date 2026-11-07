@@ -43,7 +43,13 @@ function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.V
   if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
 const app=document.getElementById('app'),ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let cfg=null,cur=null;
+let cfg=null,cur=null,exh=null;   // exh = the exhibition being shown (name, description, layout)
+// Several exhibitions: cfg.exhibitions = [{id,name,description,layout}]. An older file with one top-level "layout" still works as a single exhibition.
+function getExhibitions(c){
+  if(Array.isArray(c.exhibitions)&&c.exhibitions.length)return c.exhibitions;
+  if(c.layout&&c.layout.length)return [{id:'main',name:c.exhibitionName||c.museumName||'Exhibition',layout:c.layout}];
+  return [];
+}
 
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault());
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
@@ -62,16 +68,16 @@ const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
 function page(ok){
-  const n=(cfg.layout||[]).length;
-  app.innerHTML=`<h1>${esc(cfg.exhibitionName||cfg.museumName||'Exhibition')}</h1>
-  <p class="muted">${n} exhibit${n===1?'':'s'} placed around you in the room.</p>
+  const n=(exh.layout||[]).length,many=getExhibitions(cfg).length>1;
+  app.innerHTML=`<h1>${esc(exh.name||'Exhibition')}</h1>
+  <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.</p>
   <div class="card"><b>How it works</b><ol>
     <li>Stand on the marked start spot (or wherever you want the exhibition to begin).</li>
     <li>Tap the button below and allow the camera.</li>
     <li>Aim at the floor about 2 metres ahead, the way the exhibition should open, and tap once.</li>
     <li>Walk around and look at everything.</li></ol></div>
   ${ok?'<button class="go" id="go">Start exhibition</button>':'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
-  <p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>`;
+  <p class="muted" style="margin-top:20px">${many?'<a href="exhibition.html">All exhibitions</a> · ':''}<a href="index.html">Preview mode: view single exhibits</a></p>`;
   const b=document.getElementById('go');if(b)b.onclick=()=>start(b);
 }
 
@@ -81,9 +87,9 @@ async function start(btn){
     btn.disabled=true;
     const loader=new GLTFLoader(),items=[];
     let i=0;
-    for(const L of cfg.layout){
+    for(const L of exh.layout){
       const ex=cfg.exhibits.find(e=>e.id===L.exhibit);if(!ex)continue;
-      btn.textContent='Loading '+(++i)+' of '+cfg.layout.length+'…';
+      btn.textContent='Loading '+(++i)+' of '+exh.layout.length+'…';
       let g,clips=[];
       try{const gl=await loader.loadAsync(ex.model);g=gl.scene;solid(g,ex);clips=gl.animations||[]}
       catch(err){throw new Error('could not load '+(ex.model.startsWith('data:')?ex.title+' (built-in)':new URL(ex.model,location.href).href))}
@@ -163,8 +169,16 @@ async function start(btn){
   try{ok=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){}
   try{cfg=await (await fetch('exhibits.json?t='+Date.now(),{cache:'no-store'})).json()}
   catch(e){app.textContent='Could not load exhibits.json. Is this page served over https?';return}
-  if(!cfg.layout||!cfg.layout.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No layout has been set up yet.</p>';return}
-  document.title=cfg.exhibitionName||cfg.museumName||'Exhibition';
+  const all=getExhibitions(cfg),want=new URLSearchParams(location.search).get('e');
+  if(!all.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No exhibition has been set up yet.</p>';return}
+  exh=want?all.find(x=>x.id===want):(all.length===1?all[0]:null);
+  if(want&&!exh){app.innerHTML='<h1>Exhibition</h1><p class="muted">That exhibition was not found.</p><p><a href="exhibition.html">All exhibitions</a></p>';return}
+  if(!exh){   // several exhibitions and none chosen: show a list
+    document.title=cfg.museumName||'Exhibitions';
+    app.innerHTML=`<h1>${esc(cfg.museumName||'Exhibitions')}</h1><p class="muted">Choose an exhibition.</p>`+all.map(x=>`<div class="card"><b>${esc(x.name||x.id)}</b><div class="muted">${esc(x.description||'')}${x.description?' · ':''}${(x.layout||[]).length} exhibits</div><button class="go" data-e="${esc(x.id)}">Open</button></div>`).join('')+'<p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>';
+    app.querySelectorAll('button[data-e]').forEach(bt=>bt.onclick=()=>{location.href='exhibition.html?e='+encodeURIComponent(bt.dataset.e)});
+    return}
+  document.title=exh.name||cfg.museumName||'Exhibition';
   page(ok);
 })();
 </script>

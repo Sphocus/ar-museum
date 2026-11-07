@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Gallery maker</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--text:#1f1d1a;--muted:#6d6860;--accent:#8c2f39;--line:#e2ddd3}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#232120;--text:#f2efe9;--muted:#a39e95;--accent:#e08a93;--line:#38352f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Georgia,serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.8rem;margin:0 0 6px}
+.muted{color:var(--muted);font-family:system-ui,sans-serif;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px;font-family:system-ui,sans-serif}
+.card[hidden]{display:none}
+label{display:block;margin-top:12px;font-size:.9rem;color:var(--muted)}
+input[type=text],input[type=password],select{width:100%;margin-top:4px;padding:11px 12px;font:16px system-ui;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
+button.go,button.alt{display:block;width:100%;margin-top:14px;border:0;border-radius:999px;padding:14px 22px;font:600 1rem system-ui;cursor:pointer}
+button.go{background:var(--accent);color:#fff}
+button.alt{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button:disabled{opacity:.55}
+details{margin-top:12px;font-size:.92rem}summary{cursor:pointer;color:var(--accent)}
+ol{padding-left:20px;margin:8px 0}li{margin:5px 0}
+.status{margin-top:12px;white-space:pre-wrap;font-size:.95rem}
+.ok{color:#2e7d32}.bad{color:#c62828}
+a{color:var(--accent)}
+code{font-size:.85em;word-break:break-all}
+
+/* camera screen */
+#xr-ui{display:none;position:fixed;inset:0;pointer-events:none;color:#fff;font-family:system-ui,sans-serif}
+#xr-ui .hit{pointer-events:auto}
+#hint{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:12px;right:12px;text-align:center;background:rgba(0,0,0,.68);padding:9px 12px;border-radius:12px;font-size:15px}
+#panel{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.72);border-radius:16px;padding:8px 10px}
+#panel .row{display:flex;gap:6px;align-items:center;margin-top:6px}
+#panel .row:first-child{margin-top:0}
+#panel label{flex:0 0 52px;margin:0;color:#ddd;font-size:13px}
+#panel button{flex:1;min-height:42px;border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:0 8px}
+#panel button.sm{flex:0 0 46px;font-size:18px}
+#panel button.on{background:#e08a93;color:#000}
+#panel button.primary{background:#8c2f39}
+#panel input[type=range]{flex:1;min-width:0;height:34px}
+#panel .val{flex:1;text-align:center;font-size:14px}
+#selname{font-weight:700;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#selinfo{font-size:13px;color:#ddd}
+#list{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:62vh;display:none;flex-direction:column;background:rgba(0,0,0,.88);border-radius:16px;padding:8px}
+#list .lh{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font-weight:700}
+#list .lh button{border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:8px 14px}
+#litems{overflow-y:auto;-webkit-overflow-scrolling:touch}
+#litems button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;font:16px system-ui;padding:13px 8px}
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>Gallery maker</h1>
+  <p class="muted" id="note">Loading…</p>
+
+  <div class="card" id="c-setup" hidden>
+    <b>1. Choose a gallery</b>
+    <label>Gallery
+      <select id="g-sel"></select></label>
+    <label>Name
+      <input type="text" id="g-name" placeholder="e.g. Movie characters" maxlength="60"></label>
+    <label>Short description (optional)
+      <input type="text" id="g-desc" placeholder="e.g. Needs a large room" maxlength="140"></label>
+    <button class="go" id="go">Open camera and place models</button>
+    <p class="muted" id="g-count"></p>
+    <details><summary>How it works</summary><ol>
+      <li>Stand on the start spot and aim at the floor about 2 m ahead, the way the gallery should open. Tap.</li>
+      <li>Tap <b>Add model</b>, choose one, aim at the floor (or a table) and tap to put it there.</li>
+      <li>Tap a model to select it. Use Size, Turn and Height, or <b>Move</b>, <b>Copy</b>, <b>Delete</b>.</li>
+      <li>Tap <b>Lock &amp; save</b>, then save the gallery below.</li></ol></details>
+  </div>
+
+  <div class="card" id="c-save" hidden>
+    <b>2. Save the gallery</b>
+    <p class="muted" id="s-sum"></p>
+    <label>Repository (owner/name)
+      <input type="text" id="s-repo" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+    <label>Branch
+      <input type="text" id="s-branch" value="main" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+    <label>GitHub token (kept only on this phone)
+      <input type="password" id="s-token" autocomplete="off" placeholder="github_pat_…"></label>
+    <details><summary>How to make the token (once)</summary><ol>
+      <li>On GitHub: your profile photo, <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>.</li>
+      <li>Name it, choose an expiry, and under <b>Repository access</b> pick <b>Only select repositories</b> and choose your museum repository.</li>
+      <li>Under <b>Permissions</b>, <b>Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>. Generate it and paste it above.</li>
+      <li>Only you can save while the token stays private. Delete it in GitHub any time to switch saving off.</li></ol></details>
+    <button class="go" id="save">Save gallery to GitHub</button>
+    <button class="alt" id="copy">Copy the gallery text instead</button>
+    <button class="alt" id="again">Open camera again to keep editing</button>
+    <div class="status" id="s-status"></div>
+  </div>
+  <p class="muted" style="margin-top:24px"><a href="index.html">Back to the museum</a></p>
+</main>
+
+<div id="xr-ui">
+  <div id="hint" class="hit"></div>
+  <div id="list" class="hit">
+    <div class="lh"><span>Choose a model</span><button id="l-cancel">Cancel</button></div>
+    <div id="litems"></div>
+  </div>
+  <div id="panel" class="hit">
+    <div id="sel" style="display:none">
+      <div class="row"><span id="selname"></span><span id="selinfo"></span></div>
+      <div class="row"><label>Size</label><button class="sm" id="s-dn">−</button><input type="range" id="s-rng" min="-3" max="3" step="0.01"><button class="sm" id="s-up">+</button></div>
+      <div class="row"><label>Turn</label><button class="sm" id="r-dn">◀</button><input type="range" id="r-rng" min="-180" max="180" step="1"><button class="sm" id="r-up">▶</button></div>
+      <div class="row"><label>Height</label><button class="sm" id="h-dn">▼</button><span class="val" id="h-val"></span><button class="sm" id="h-up">▲</button></div>
+      <div class="row"><button id="b-move">Move</button><button id="b-copy">Copy</button><button id="b-del">Delete</button><button id="b-close">Close</button></div>
+    </div>
+    <div class="row"><button id="b-add">Add model</button><button id="b-start">Start spot</button><button id="b-done" class="primary">Lock &amp; save</button></div>
+  </div>
+</div>
+
+<!-- Plain logic with no 3D or page code, so it can be tested on its own. -->
+<script id="pure">
+// Directions on the floor for a start spot facing angle th (same maths as exhibition.html).
+function basis(th){return {fx:-Math.sin(th),fz:-Math.cos(th),rx:Math.cos(th),rz:-Math.sin(th)}}
+// Where a layout entry L (x right, z forward, y up, rotation degrees, scale) goes in the world.
+function placeAt(base,L,ex,minY){
+  const b=basis(base.th),sc=(+ex.scale||1)*(+L.scale||1),x=+L.x||0,z=+L.z||0;
+  return {sc,x:base.ox+b.rx*x+b.fx*z,y:base.oy+(+L.y||0)-minY*sc,z:base.oz+b.rz*x+b.fz*z,ry:base.th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180};
+}
+// The reverse: a floor point in the world to layout x/z.
+function floorToLocal(base,hx,hz){const b=basis(base.th),dx=hx-base.ox,dz=hz-base.oz;return {x:dx*b.rx+dz*b.rz,z:dx*b.fx+dz*b.fz}}
+function wrap180(d){d=((d+180)%360+360)%360-180;return d}
+// Layout rotation that makes a model at (px,pz) face the point (tx,tz).
+function faceRotation(base,ex,px,pz,tx,tz){return wrap180(Math.atan2(tx-px,tz-pz)*180/Math.PI-base.th*180/Math.PI-(+ex.rotation||0))}
+const r2=v=>Math.round(v*100)/100;
+function entryFromItem(it){return {exhibit:it.ex.id,x:r2(it.L.x),y:r2(it.L.y),z:r2(it.L.z),rotation:Math.round(wrap180(it.L.rotation)),scale:Math.round(it.L.scale*1000)/1000}}
+function getExhibitions(c){
+  if(Array.isArray(c.exhibitions)&&c.exhibitions.length)return c.exhibitions;
+  if(c.layout&&c.layout.length)return [{id:'main',name:c.exhibitionName||c.museumName||'Exhibition',layout:c.layout}];
+  return [];
+}
+function slug(s){return String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'gallery'}
+function uniqueId(name,cfg){const used=new Set(getExhibitions(cfg).map(x=>x.id));const b=slug(name);let id=b,n=2;while(used.has(id))id=b+'-'+(n++);return id}
+// Put one exhibition into a copy of exhibits.json. An old single top-level "layout" becomes the first exhibition.
+function mergeExhibition(cur,exh){
+  const out=JSON.parse(JSON.stringify(cur));
+  const list=getExhibitions(out).map(x=>x);
+  delete out.layout;delete out.exhibitionName;
+  const i=list.findIndex(x=>x.id===exh.id);
+  if(i>=0)list[i]=exh;else list.push(exh);
+  out.exhibitions=list;return out;
+}
+function utf8ToB64(str){const bytes=new TextEncoder().encode(str);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
+function b64ToUtf8(b64){const bin=atob(b64.replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+// Save: read the live exhibits.json, change only the exhibitions, write it back. Retries once if the file changed meanwhile.
+async function saveToGitHub(o,exh,f){
+  f=f||fetch;
+  const api='https://api.github.com/repos/'+o.repo+'/contents/'+(o.path||'exhibits.json');
+  const H={Authorization:'Bearer '+o.token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  const explain=async(r,what)=>{
+    let m='';try{m=(await r.json()).message||''}catch(e){}
+    if(r.status===401)return new Error('GitHub did not accept the token (401). Check it was copied in full and has not expired.');
+    if(r.status===403)return new Error('GitHub refused (403). The token may lack "Contents: Read and write" for this repository. '+m);
+    if(r.status===404)return new Error('Not found (404). Check the repository name and branch, and that the token can access this repository.');
+    return new Error(what+' failed ('+r.status+'). '+m);
+  };
+  for(let attempt=0;attempt<2;attempt++){
+    const g=await f(api+'?ref='+encodeURIComponent(o.branch||'main'),{headers:H,cache:'no-store'});
+    if(!g.ok)throw await explain(g,'Reading exhibits.json');
+    const meta=await g.json();
+    const cur=JSON.parse(b64ToUtf8(meta.content));
+    const merged=mergeExhibition(cur,exh);
+    const body={message:'Gallery maker: '+exh.name,content:utf8ToB64(JSON.stringify(merged,null,2)+'\n'),sha:meta.sha,branch:o.branch||'main'};
+    const p=await f(api,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
+    if(p.ok)return merged;
+    if(p.status===409&&attempt===0)continue;
+    throw await explain(p,'Saving');
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k){try{return localStorage.getItem(k)||''}catch(e){return ''}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let cfg=null,xrOK=false,session=null;
+// The gallery being made. layout entries: {exhibit,x,y,z,rotation,scale}, positions relative to the start spot.
+const work={id:null,name:'',description:'',layout:[]};
+window.galleryMaker={work,showCount:()=>showCount()};   // handy for testing
+
+// Same helpers as the other pages.
+const solid=(o,ex)=>{if(ex.solid)o.traverse(c=>{if(c.isMesh)[].concat(c.material).forEach(m=>{m.transparent=false;m.depthWrite=true;m.alphaTest=0.5;m.needsUpdate=true})})};
+function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
+  try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
+  if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
+
+/* ---------------- page (outside the camera) ---------------- */
+function fillGallerySelect(){
+  const sel=$('g-sel'),all=getExhibitions(cfg);
+  sel.innerHTML='<option value="">New gallery</option>'+all.map(x=>`<option value="${esc(x.id)}">${esc(x.name||x.id)} (${(x.layout||[]).length})</option>`).join('');
+}
+function loadChoice(){
+  const id=$('g-sel').value,x=id?getExhibitions(cfg).find(e=>e.id===id):null;
+  work.id=x?x.id:null;work.layout=x?JSON.parse(JSON.stringify(x.layout||[])):[];
+  $('g-name').value=x?(x.name||''):'';$('g-desc').value=x?(x.description||''):'';
+  showCount();
+}
+function showCount(){
+  const n=work.layout.length;
+  $('g-count').textContent=n?n+' model'+(n===1?'':'s')+' in this gallery so far.':'No models placed yet.';
+  $('go').textContent=n?'Open camera and keep editing':'Open camera and place models';
+  $('c-save').hidden=!n;
+  $('s-sum').textContent=n?summary():'';
+}
+function summary(){
+  const by=new Map(cfg.exhibits.map(e=>[e.id,e.title||e.id])),c={};
+  work.layout.forEach(L=>{const t=by.get(L.exhibit)||L.exhibit;c[t]=(c[t]||0)+1});
+  return Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0])).map(([t,n])=>n>1?t+' ×'+n:t).join(', ');
+}
+function currentExhibition(){
+  const name=$('g-name').value.trim()||'Untitled gallery';
+  const id=work.id||uniqueId(name,cfg),desc=$('g-desc').value.trim();
+  const e={id,name};if(desc)e.description=desc;e.layout=work.layout;return e;
+}
+function setStatus(msg,cls){const s=$('s-status');s.className='status '+(cls||'');s.innerHTML=msg}
+
+async function init(){
+  try{cfg=await (await fetch('exhibits.json?t='+Date.now(),{cache:'no-store'})).json()}
+  catch(e){$('note').textContent='Could not load exhibits.json. Is this page served over https?';return}
+  try{xrOK=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){}
+  $('note').innerHTML=xrOK?'Place models in your room with the camera and save them as a gallery.':'Placing models needs an Android phone with Google AR support, using Chrome. You can still read this page, but the camera part will not start.';
+  fillGallerySelect();$('c-setup').hidden=false;loadChoice();
+  $('g-sel').onchange=loadChoice;
+  $('go').onclick=()=>start($('go'));$('again').onclick=()=>start($('again'));
+  const m=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split('/')[1];
+  $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');
+  $('s-branch').value=store.get('gm_branch')||'main';$('s-token').value=store.get('gm_token');
+  $('save').onclick=doSave;$('copy').onclick=doCopy;
+}
+async function doSave(){
+  const o={repo:$('s-repo').value.trim(),branch:$('s-branch').value.trim()||'main',token:$('s-token').value.trim()};
+  if(!/^[^\/\s]+\/[^\/\s]+$/.test(o.repo)){setStatus('Enter the repository as owner/name.','bad');return}
+  if(!o.token){setStatus('Paste your GitHub token first (see “How to make the token”).','bad');return}
+  if(!work.layout.length){setStatus('There are no models in this gallery yet.','bad');return}
+  store.set('gm_repo',o.repo);store.set('gm_branch',o.branch);store.set('gm_token',o.token);
+  const b=$('save');b.disabled=true;setStatus('Saving…');
+  try{
+    const exh=currentExhibition();
+    const merged=await saveToGitHub(o,exh);
+    work.id=exh.id;cfg=merged;fillGallerySelect();$('g-sel').value=exh.id;
+    const link=new URL('exhibition.html?e='+encodeURIComponent(exh.id),location.href).href;
+    setStatus('Saved “'+esc(exh.name)+'”. GitHub Pages takes a few minutes to publish it.<br>Gallery link: <a href="'+esc(link)+'">'+esc(link)+'</a>','ok');
+  }catch(e){setStatus(esc(e&&e.message?e.message:e),'bad')}
+  b.disabled=false;
+}
+async function doCopy(){
+  const txt=JSON.stringify(currentExhibition(),null,2);
+  try{await navigator.clipboard.writeText(txt);setStatus('Copied. In exhibits.json add this inside the "exhibitions" list (or replace the entry with the same id).','ok')}
+  catch(e){setStatus('Could not copy automatically. Select this text and copy it:<br><code>'+esc(txt)+'</code>','bad')}
+}
+
+/* ---------------- camera screen ---------------- */
+const ui=$('xr-ui'),hintEl=$('hint');
+const hint=t=>{if(hintEl.textContent!==t)hintEl.textContent=t};
+['panel','list','hint'].forEach(id=>$(id).addEventListener('beforexrselect',e=>e.preventDefault()));
+function hold(btn,fn){const nb=btn.cloneNode(true);btn.replaceWith(nb);btn=nb;   // fresh button each camera session, so handlers never double up
+  let t,iv;const stop=()=>{clearTimeout(t);clearInterval(iv)};
+  btn.addEventListener('pointerdown',e=>{e.preventDefault();fn();t=setTimeout(()=>{iv=setInterval(fn,70)},350)});
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>btn.addEventListener(ev,stop))}
+
+async function start(btn){
+  if(session)return;
+  if(!xrOK){alert('This needs an Android phone with Google AR support, using Chrome.');return}
+  work.name=$('g-name').value;
+  const label=btn.textContent;
+  try{
+    btn.disabled=true;
+    const byId=new Map(cfg.exhibits.map(e=>[e.id,e]));
+    const loader=new GLTFLoader(),cache=new Map();
+    const getModel=async ex=>{
+      if(!cache.has(ex.id))cache.set(ex.id,loader.loadAsync(ex.model).then(gl=>{solid(gl.scene,ex);return gl.scene}));
+      try{return await cache.get(ex.id)}catch(e){cache.delete(ex.id);throw new Error('could not load '+(ex.title||ex.id))}
+    };
+    const need=[...new Set(work.layout.map(L=>byId.get(L.exhibit)).filter(Boolean))];
+    let k=0;for(const ex of need){btn.textContent='Loading '+(++k)+' of '+need.length+'…';await getModel(ex)}
+
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
+    const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,80);
+    scene.add(new THREE.HemisphereLight(0xffffff,0xbbbbff,1.3));
+    const sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(1,3,2);scene.add(sun);
+    const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff}));
+    reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
+    const group=new THREE.Group();scene.add(group);
+    // start-spot marker: a ring with an arrow pointing the way the gallery opens
+    const marker=new THREE.Group();marker.visible=false;
+    marker.add(new THREE.Mesh(new THREE.RingGeometry(0.16,0.2,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff,side:THREE.DoubleSide})));
+    const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.22,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));arrow.position.set(0,0.02,-0.34);marker.add(arrow);scene.add(marker);
+    // ring under the selected model
+    const selRing=new THREE.Mesh(new THREE.RingGeometry(0.92,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd24a,depthTest:false,transparent:true,side:THREE.DoubleSide}));
+    selRing.renderOrder=999;selRing.visible=false;scene.add(selRing);
+
+    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false};
+    session=st;
+    const items=st.items;
+
+    function place(it){   // set the 3D object from its layout entry
+      const p=placeAt(st.base,it.L,it.ex,it.minY);
+      it.o.scale.setScalar(p.sc);it.o.position.set(p.x,p.y,p.z);it.o.rotation.y=p.ry;
+      if(it===st.sel)updateRing();
+    }
+    function updateRing(){
+      const it=st.sel;if(!it){selRing.visible=false;return}
+      const bb=new THREE.Box3().setFromObject(it.o),s=bb.getSize(new THREE.Vector3());
+      const r=Math.min(3,Math.max(0.15,Math.max(s.x,s.z)/2*0.9+0.05));
+      selRing.scale.setScalar(r);selRing.position.set(it.o.position.x,st.base.oy+(it.L.y||0)+0.01,it.o.position.z);selRing.visible=true;
+      it.height=s.y;
+    }
+    async function addItem(ex,L){
+      const g=await getModel(ex),o=SkeletonUtils.clone(g);
+      const bb=lowestY(o),minY=(ex.ground===false||!isFinite(bb))?0:bb;   // at full size, as in the exhibition page
+      const it={ex,o,minY,L:Object.assign({x:0,y:0,z:0,rotation:0,scale:1},L)};
+      items.push(it);group.add(o);place(it);return it;
+    }
+    function select(it){st.sel=it;st.moving=false;updateRing();refresh()}
+    function setHint(){
+      if(st.mode==='start')return hint('Stand on the start spot. Aim at the floor about 2 m ahead, the way the gallery should open, then tap.');
+      if(st.busy)return hint('Loading…');
+      if(st.adding)return hint('Aim at the floor (or a table) where “'+(st.adding.title||st.adding.id)+'” should go, then tap.');
+      if(st.moving&&st.sel)return hint('Aim at where “'+(st.sel.ex.title||st.sel.ex.id)+'” should go, then tap.');
+      if(st.sel)return hint('Adjusting “'+(st.sel.ex.title||st.sel.ex.id)+'”.');
+      hint(items.length?'Tap a model to adjust it, or tap Add model. ('+items.length+' placed)':'Tap Add model to put your first model in the room.');
+    }
+    function refresh(){
+      const it=st.sel;$('sel').style.display=it?'block':'none';
+      if(it){
+        $('selname').textContent=it.ex.title||it.ex.id;
+        $('s-rng').value=Math.log2(it.L.scale||1);$('r-rng').value=wrap180(it.L.rotation||0);
+        $('h-val').textContent=((it.L.y||0)>=0?'+':'')+(it.L.y||0).toFixed(2)+' m';
+        $('selinfo').textContent=(it.height?'about '+it.height.toFixed(2)+' m tall':'');
+        $('b-move').classList.toggle('on',st.moving);
+      }
+      setHint();
+    }
+    function change(fn){const it=st.sel;if(!it)return;fn(it);place(it);updateRing();refresh()}
+    $('s-rng').oninput=e=>change(it=>{it.L.scale=Math.pow(2,+e.target.value)});
+    hold($('s-dn'),()=>change(it=>{it.L.scale=Math.min(8,Math.max(0.125,it.L.scale*Math.pow(2,-0.05)))}));
+    hold($('s-up'),()=>change(it=>{it.L.scale=Math.min(8,Math.max(0.125,it.L.scale*Math.pow(2,0.05)))}));
+    $('r-rng').oninput=e=>change(it=>{it.L.rotation=+e.target.value});
+    hold($('r-dn'),()=>change(it=>{it.L.rotation=wrap180((it.L.rotation||0)+5)}));   // ◀ turns it to the left (counter-clockwise from above)
+    hold($('r-up'),()=>change(it=>{it.L.rotation=wrap180((it.L.rotation||0)-5)}));
+    hold($('h-dn'),()=>change(it=>{it.L.y=r2((it.L.y||0)-0.05)}));
+    hold($('h-up'),()=>change(it=>{it.L.y=r2((it.L.y||0)+0.05)}));
+    $('b-move').onclick=()=>{if(st.sel){st.moving=!st.moving;st.adding=null;refresh()}};
+    $('b-close').onclick=()=>select(null);
+    $('b-del').onclick=()=>{const it=st.sel;if(!it)return;group.remove(it.o);items.splice(items.indexOf(it),1);select(null)};
+    $('b-copy').onclick=async()=>{
+      const it=st.sel;if(!it||st.busy)return;st.busy=true;setHint();
+      try{const n=await addItem(it.ex,Object.assign({},it.L,{x:r2(it.L.x+0.5)}));st.busy=false;select(n)}
+      catch(e){st.busy=false;hint('Could not copy: '+(e.message||e))}
+    };
+    $('b-add').onclick=()=>{
+      const l=$('litems');
+      l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
+      l.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.adding=byId.get(b.dataset.id);st.moving=false;st.sel=null;updateRing();$('list').style.display='none';$('panel').style.display='block';refresh()});
+      $('list').style.display='flex';$('panel').style.display='none';
+    };
+    $('l-cancel').onclick=()=>{$('list').style.display='none';$('panel').style.display='block'};
+    $('b-start').onclick=()=>{st.mode='start';st.adding=null;st.moving=false;select(null)};
+    $('b-done').onclick=()=>session&&xr.end();
+
+    const controller=renderer.xr.getController(0);scene.add(controller);
+    const ray=new THREE.Raycaster();
+    controller.addEventListener('select',async()=>{
+      if(st.busy)return;
+      const hasHit=reticle.visible,hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+      if(st.mode==='start'){
+        if(!hasHit)return;
+        const cam=st.cam;let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
+        if(len<0.4){hint('Aim a little further ahead (about 2 m), then tap.');return}
+        fx/=len;fz/=len;
+        st.base={ox:cam.x,oy:hit.y,oz:cam.z,th:Math.atan2(-fx,-fz)};
+        marker.position.set(cam.x,hit.y+0.01,cam.z);marker.rotation.y=st.base.th;marker.visible=true;
+        st.mode='edit';
+        if(st.first){   // first time: bring in the models already in this gallery
+          st.first=false;st.busy=true;setHint();
+          try{for(const L of work.layout){const ex=byId.get(L.exhibit);if(ex)await addItem(ex,L)}}catch(e){hint('Could not load a model: '+(e.message||e));st.busy=false;return}
+          st.busy=false;st.loaded=true;
+        }else items.forEach(place);
+        select(null);return;
+      }
+      if(st.adding||st.moving){
+        if(!hasHit)return;
+        const p=floorToLocal(st.base,hit.x,hit.z),dy=hit.y-st.base.oy,y=Math.abs(dy)>0.08?r2(dy):0;
+        if(st.moving&&st.sel){
+          Object.assign(st.sel.L,{x:r2(p.x),z:r2(p.z),y});st.moving=false;place(st.sel);updateRing();refresh();
+        }else if(st.adding){
+          const ex=st.adding;st.adding=null;st.busy=true;setHint();
+          try{
+            const face=faceRotation(st.base,ex,hit.x,hit.z,st.cam.x,st.cam.z);   // new models turn to face you
+            const it=await addItem(ex,{x:r2(p.x),y,z:r2(p.z),rotation:Math.round(face),scale:1});
+            st.busy=false;select(it);
+          }catch(e){st.busy=false;hint('Could not load “'+(ex.title||ex.id)+'”: '+(e.message||e))}
+        }
+        return;
+      }
+      // otherwise: tap a model to select it
+      const m=new THREE.Matrix4().extractRotation(controller.matrixWorld);
+      ray.ray.origin.setFromMatrixPosition(controller.matrixWorld);ray.ray.direction.set(0,0,-1).applyMatrix4(m);
+      const hits=ray.intersectObjects(items.map(i=>i.o),true);
+      let found=null;
+      if(hits.length){let o=hits[0].object;while(o&&!found){found=items.find(i=>i.o===o)||null;o=o.parent}}
+      select(found);
+    });
+
+    ui.style.display='block';$('list').style.display='none';$('panel').style.display='block';select(null);
+    const xr=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(xr);
+    const viewer=await xr.requestReferenceSpace('viewer'),source=await xr.requestHitTestSource({space:viewer});
+    xr.addEventListener('end',()=>{
+      renderer.setAnimationLoop(null);ui.style.display='none';
+      if(st.loaded)work.layout=items.map(entryFromItem);      // keep what was placed (never wipe a gallery that did not finish loading)
+      session=null;renderer.dispose();
+      btn.disabled=false;btn.textContent=label;
+      showCount();setStatus('');
+      document.getElementById('c-save').scrollIntoView({behavior:'smooth'});
+    });
+    renderer.setAnimationLoop((t,frame)=>{
+      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const p=vp.transform.position;st.cam.set(p.x,p.y,p.z)}}
+      const want=frame&&(st.mode==='start'||st.adding||st.moving);
+      if(want){
+        const hits=frame.getHitTestResults(source);
+        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}else reticle.visible=false;
+      }else reticle.visible=false;
+      renderer.render(scene,camera);
+    });
+  }catch(e){
+    ui.style.display='none';session=null;btn.disabled=false;btn.textContent=label;
+    alert('The camera could not start.\n\nReason: '+(e&&e.message?e.message:e));
+  }
+}
+init();
+</script>
+</body>
+</html>

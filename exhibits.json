@@ -186,6 +186,38 @@
       "model": "models/spiderman.glb",
       "scale": 1,
       "rotation": 0
+    },
+    {
+      "id": "cowgirl",
+      "title": "Cowgirl",
+      "description": "This work is based on \"Female Cowgirl V4\" (https://sketchfab.com/3d-models/female-cowgirl-v4-17950505a83d4c339fd276c6b3a8addc) by Fadly.W (https://sketchfab.com/Fadly.W) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/cowgirl.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "trex",
+      "title": "Jurassic World T. rex",
+      "description": "This work is based on \"jurassic world dominion t rex(MSFS2024Orbx)\" (https://sketchfab.com/3d-models/jurassic-world-dominion-t-rexmsfs2024orbx-816fefa2774843f4a2f61a4501f3645c) by Yea (https://sketchfab.com/yea) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/trex.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "bikini-woman",
+      "title": "Tied Shirt Bikini Woman",
+      "description": "This work is based on \"Tied Shirt Bikini Woman 3D Model\" (https://sketchfab.com/3d-models/tied-shirt-bikini-woman-3d-model-e63d90d9a9a546abb360077c4f17f672) by jbauer5 (https://sketchfab.com/jbauer5) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/bikini-woman.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "girl",
+      "title": "Girl",
+      "description": "This work is based on \"Girl\" (https://sketchfab.com/3d-models/girl-7d33f78c65124a5ea10bdc03f07bb9de) by distipulo (https://sketchfab.com/distipulo) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/girl.glb",
+      "scale": 1,
+      "rotation": 0
     }
   ],
   "exhibitionName": "My Exhibition",

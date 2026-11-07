@@ -36,6 +36,7 @@ code{font-size:.85em;word-break:break-all}
 #panel{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.72);border-radius:16px;padding:8px 10px}
 #panel .row{display:flex;gap:6px;align-items:center;margin-top:6px}
 #panel .row:first-child{margin-top:0}
+#dbg{position:absolute;top:calc(88px + env(safe-area-inset-top,0px));right:12px;font:11px system-ui;background:rgba(0,0,0,.5);padding:3px 7px;border-radius:8px;color:#bbb}
 #panel label{flex:0 0 52px;margin:0;color:#ddd;font-size:13px}
 #panel button{flex:1;min-height:42px;border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:0 8px}
 #panel button.sm{flex:0 0 46px;font-size:18px}
@@ -98,6 +99,7 @@ code{font-size:.85em;word-break:break-all}
 
 <div id="xr-ui">
   <div id="hint" class="hit"></div>
+  <div id="dbg" class="hit"></div>
   <div id="list" class="hit">
     <div class="lh"><span>Choose a model</span><button id="l-cancel">Cancel</button></div>
     <div id="litems"></div>
@@ -110,6 +112,7 @@ code{font-size:.85em;word-break:break-all}
       <div class="row"><label>Height</label><button class="sm" id="h-dn">▼</button><span class="val" id="h-val"></span><button class="sm" id="h-up">▲</button></div>
       <div class="row"><button id="b-move">Move</button><button id="b-copy">Copy</button><button id="b-del">Delete</button><button id="b-close">Close</button></div>
     </div>
+    <div class="row" id="here-row" style="display:none"><button id="b-here" class="primary" style="min-height:52px;font-size:16px">Set start spot here</button></div>
     <div class="row"><button id="b-add">Add model</button><button id="b-start">Start spot</button><button id="b-done" class="primary">Lock &amp; save</button></div>
   </div>
 </div>
@@ -300,7 +303,7 @@ async function start(btn){
     const selRing=new THREE.Mesh(new THREE.RingGeometry(0.92,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd24a,depthTest:false,transparent:true,side:THREE.DoubleSide}));
     selRing.renderOrder=999;selRing.visible=false;scene.add(selRing);
 
-    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false};
+    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),hitT:-1e9};
     session=st;
     const items=st.items;
 
@@ -324,7 +327,7 @@ async function start(btn){
     }
     function select(it){st.sel=it;st.moving=false;updateRing();refresh()}
     function setHint(){
-      if(st.mode==='start')return hint('Stand on the start spot. Aim at the floor about 2 m ahead, the way the gallery should open, then tap.');
+      if(st.mode==='start')return hint('STEP 1: Stand where visitors will start. Aim the ring at the floor about 2 m ahead (the way the gallery should open) and tap the screen.');
       if(st.busy)return hint('Loading…');
       if(st.adding)return hint('Aim at the floor (or a table) where “'+(st.adding.title||st.adding.id)+'” should go, then tap.');
       if(st.moving&&st.sel)return hint('Aim at where “'+(st.sel.ex.title||st.sel.ex.id)+'” should go, then tap.');
@@ -340,6 +343,12 @@ async function start(btn){
         $('selinfo').textContent=(it.height?'about '+it.height.toFixed(2)+' m tall':'');
         $('b-move').classList.toggle('on',st.moving);
       }
+      const hb=$('b-here'),hr=$('here-row');
+      if(st.mode==='start'){hr.style.display='flex';hb.textContent='Set start spot here'}
+      else if(st.adding){hr.style.display='flex';hb.textContent='Place “'+(st.adding.title||st.adding.id)+'” here'}
+      else if(st.moving&&st.sel){hr.style.display='flex';hb.textContent='Move it here'}
+      else hr.style.display='none';
+      $('b-add').disabled=st.mode==='start';$('b-start').disabled=st.mode==='start';
       setHint();
     }
     function change(fn){const it=st.sel;if(!it)return;fn(it);place(it);updateRing();refresh()}
@@ -360,6 +369,7 @@ async function start(btn){
       catch(e){st.busy=false;hint('Could not copy: '+(e.message||e))}
     };
     $('b-add').onclick=()=>{
+      if(st.mode==='start'){hint('Set the start spot first: aim at the floor and tap.');return}
       const l=$('litems');
       l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
       l.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.adding=byId.get(b.dataset.id);st.moving=false;st.sel=null;updateRing();$('list').style.display='none';$('panel').style.display='block';refresh()});
@@ -371,11 +381,17 @@ async function start(btn){
 
     const controller=renderer.xr.getController(0);scene.add(controller);
     const ray=new THREE.Raycaster();
-    controller.addEventListener('select',async()=>{
+    st.taps=0;st.sels=0;
+    function dbg(){const f=(performance.now()-st.hitT)<1500;$('dbg').textContent='floor '+(f?'found':'not found')+' · taps '+st.taps+' · screen taps '+st.sels}
+    $('b-here').onclick=()=>{st.taps++;onTap(true)};
+    controller.addEventListener('select',()=>{st.sels++;if(!st.viaBtn)onTap(false)});
+    async function onTap(viaButton){
       if(st.busy)return;
-      const hasHit=reticle.visible,hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+      const hasHit=(performance.now()-st.hitT)<1500,hit=st.hit;
+      if(st.mode==='start'||st.adding||st.moving){
+        if(!hasHit){hint('Tap received, but no floor found yet. Move the phone slowly over the floor until the ring stays steady, then tap.');return}
+      }
       if(st.mode==='start'){
-        if(!hasHit)return;
         const cam=st.cam;let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
         if(len<0.4){hint('Aim a little further ahead (about 2 m), then tap.');return}
         fx/=len;fz/=len;
@@ -390,7 +406,6 @@ async function start(btn){
         select(null);return;
       }
       if(st.adding||st.moving){
-        if(!hasHit)return;
         const p=floorToLocal(st.base,hit.x,hit.z),dy=hit.y-st.base.oy,y=Math.abs(dy)>0.08?r2(dy):0;
         if(st.moving&&st.sel){
           Object.assign(st.sel.L,{x:r2(p.x),z:r2(p.z),y});st.moving=false;place(st.sel);updateRing();refresh();
@@ -411,7 +426,7 @@ async function start(btn){
       let found=null;
       if(hits.length){let o=hits[0].object;while(o&&!found){found=items.find(i=>i.o===o)||null;o=o.parent}}
       select(found);
-    });
+    }
 
     ui.style.display='block';$('list').style.display='none';$('panel').style.display='block';select(null);
     const xr=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
@@ -431,8 +446,10 @@ async function start(btn){
       const want=frame&&(st.mode==='start'||st.adding||st.moving);
       if(want){
         const hits=frame.getHitTestResults(source);
-        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}else reticle.visible=false;
+        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);st.hit.setFromMatrixPosition(reticle.matrix);st.hitT=performance.now()}}
+        else if(performance.now()-st.hitT>400)reticle.visible=false;   // hold the ring briefly so it does not flicker
       }else reticle.visible=false;
+      if(!st.dt||t-st.dt>300){st.dt=t;dbg()}
       renderer.render(scene,camera);
     });
   }catch(e){

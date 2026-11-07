@@ -129,7 +129,7 @@ async function start(btn){
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{
-      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position;state.cam=new THREE.Vector3(t.x,t.y,t.z)}}
+      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z)}}
       if(frame&&!state.placed){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}

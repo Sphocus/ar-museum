@@ -137,16 +137,17 @@ async function startAR(ex,btn){
       renderer.setAnimationLoop(null);ui.style.display='none';cur=null;renderer.dispose();
       btn.disabled=false;btn.textContent=label;
     });
+    const SURF='Surface found. Tap to place the model.',MOVE='Move your phone slowly over the floor or a table…';
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){
         const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());
-        if(vp){const t=vp.transform.position;state.cam=new THREE.Vector3(t.x,t.y,t.z)}
+        if(vp){const t=vp.transform.position;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z)}
         const hits=frame.getHitTestResults(source);
         if(hits.length){
           const pose=hits[0].getPose(renderer.xr.getReferenceSpace());
           reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);
-          if(!state.obj)hint.textContent='Surface found. Tap to place the model.';
-        }else{reticle.visible=false;if(!state.obj)hint.textContent='Move your phone slowly over the floor or a table…'}
+          if(!state.obj&&hint.textContent!==SURF)hint.textContent=SURF;   // only touch the page text when it actually changes (writing it every frame makes the AR overlay stutter)
+        }else{reticle.visible=false;if(!state.obj&&hint.textContent!==MOVE)hint.textContent=MOVE}
       }
       if(state.mixer)state.mixer.update(clock.getDelta());else clock.getDelta();
       renderer.render(scene,camera);

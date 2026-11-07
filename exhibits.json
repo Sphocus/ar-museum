@@ -19,12 +19,6 @@
       "rotation": 0
     },
     {
-      "id": "cube",
-      "title": "Sample cube",
-      "description": "Built-in test cube (no model file needed). Replace with your own exhibit later.",
-      "model": "data:model/gltf-binary;base64,Z2xURgIAAACABQAA3AIAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAifSwic2NlbmUiOjAsInNjZW5lcyI6W3sibm9kZXMiOlswXX1dLCJub2RlcyI6W3sibWVzaCI6MH1dLCJtZXNoZXMiOlt7InByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIk5PUk1BTCI6MX0sImluZGljZXMiOjIsIm1hdGVyaWFsIjowfV19XSwibWF0ZXJpYWxzIjpbeyJwYnJNZXRhbGxpY1JvdWdobmVzcyI6eyJiYXNlQ29sb3JGYWN0b3IiOlswLjg1LDAuMzgsMC4xNywxXSwibWV0YWxsaWNGYWN0b3IiOjAuMSwicm91Z2huZXNzRmFjdG9yIjowLjV9fV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjY0OH1dLCJidWZmZXJWaWV3cyI6W3siYnVmZmVyIjowLCJieXRlT2Zmc2V0IjowLCJieXRlTGVuZ3RoIjoyODh9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0IjoyODgsImJ5dGVMZW5ndGgiOjI4OH0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjU3NiwiYnl0ZUxlbmd0aCI6NzJ9XSwiYWNjZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MjQsInR5cGUiOiJWRUMzIiwibWluIjpbLTAuMTUsMCwtMC4xNV0sIm1heCI6WzAuMTUsMC4zLDAuMTVdfSx7ImJ1ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUxMjMsImNvdW50IjozNiwidHlwZSI6IlNDQUxBUiJ9XX2IAgAAQklOAJqZGb4AAAAAmpkZPpqZGT4AAAAAmpkZPpqZGT6amZk+mpkZPpqZGb6amZk+mpkZPpqZGT4AAAAAmpkZvpqZGb4AAAAAmpkZvpqZGb6amZk+mpkZvpqZGT6amZk+mpkZvpqZGT4AAAAAmpkZPpqZGT4AAAAAmpkZvpqZGT6amZk+mpkZvpqZGT6amZk+mpkZPpqZGb4AAAAAmpkZvpqZGb4AAAAAmpkZPpqZGb6amZk+mpkZPpqZGb6amZk+mpkZvpqZGb6amZk+mpkZPpqZGT6amZk+mpkZPpqZGT6amZk+mpkZvpqZGb6amZk+mpkZvpqZGb4AAAAAmpkZvpqZGT4AAAAAmpkZvpqZGT4AAAAAmpkZPpqZGb4AAAAAmpkZPgAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAQACAAAAAgADAAQABQAGAAQABgAHAAgACQAKAAgACgALAAwADQAOAAwADgAPABAAEQASABAAEgATABQAFQAWABQAFgAXAA=="
-    },
-    {
       "id": "catwoman",
       "title": "Catwoman",
       "description": "\"Catwoman\" by DshGames (https://sketchfab.com/3d-models/catwoman-8420acb5236e4da68f53fc691997f1cc), licensed CC-BY-4.0.",
@@ -165,14 +159,6 @@
       "title": "The Rhetorician",
       "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
       "model": "models/rhetorician.glb",
-      "scale": 1,
-      "rotation": 0
-    },
-    {
-      "id": "sorceress",
-      "title": "Sorceress",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
-      "model": "models/sorceress.glb",
       "scale": 1,
       "rotation": 0
     },

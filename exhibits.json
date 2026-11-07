@@ -83,6 +83,15 @@
       "scale": 0.7,
       "rotation": 0,
       "solid": true
+    },
+    {
+      "id": "fairy-girl",
+      "title": "Fairy girl on a mushroom",
+      "description": "This work is based on \"Fairy girl on a mushroom\" (https://sketchfab.com/3d-models/fairy-girl-on-a-mushroom-77419498721f4e47ad9f95c4dd6fa893) by C.J..Goldman (https://sketchfab.com/C.J..Goldman) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/fairy-girl.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
     }
   ],
   "exhibitionName": "My Exhibition",

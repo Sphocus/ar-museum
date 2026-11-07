@@ -130,8 +130,8 @@
     },
     {
       "id": "mythcreature",
-      "title": "Myth Creature",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "title": "Arachne (Myth Creature)",
+      "description": "This work is based on \"MythCreature Round 3: Arachne Animation\" (https://sketchfab.com/3d-models/mythcreature-round-3-arachne-animation-70b1311e0799411a8f826c2161b6f7bb) by melinastratmann (https://sketchfab.com/melinastratmann) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/mythcreature.glb",
       "scale": 1,
       "rotation": 0,
@@ -140,7 +140,7 @@
     {
       "id": "lara-croft",
       "title": "Lara Croft",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "description": "This work is based on \"ROTTR: LaraCroft\" (https://sketchfab.com/3d-models/rottr-laracroft-873f56b896f245428cf296e2dfe351a7) by DshGames (https://sketchfab.com/DshGames) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/lara-croft.glb",
       "scale": 1,
       "rotation": 0,
@@ -149,7 +149,7 @@
     {
       "id": "mech-drone",
       "title": "Mech Drone",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "description": "This work is based on \"Mech Drone\" (https://sketchfab.com/3d-models/mech-drone-8d06874aac5246c59edb4adbe3606e0e) by Willy Decarpentrie (https://sketchfab.com/skudgee) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/mech-drone.glb",
       "scale": 1,
       "rotation": -180
@@ -157,7 +157,7 @@
     {
       "id": "rhetorician",
       "title": "The Rhetorician",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "description": "This work is based on \"Rhetorician\" (https://sketchfab.com/3d-models/rhetorician-a89f035291d843069d73988cc0e25399) by engine9 (https://sketchfab.com/engine9) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/rhetorician.glb",
       "scale": 1,
       "rotation": 0
@@ -165,7 +165,7 @@
     {
       "id": "tank-top-woman",
       "title": "Woman in a white tank top",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "description": "This work is based on \"White tank top woman 3D model\" (https://sketchfab.com/3d-models/white-tank-top-woman-3d-model-ff8f28f010e347abbf30445e00de43e2) by haziz6 (https://sketchfab.com/haziz6) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/tank-top-woman.glb",
       "scale": 1,
       "rotation": 0
@@ -173,7 +173,7 @@
     {
       "id": "ninja-red",
       "title": "Red Ninja",
-      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "description": "This work is based on \"Sexy Ninja Red\" (https://sketchfab.com/3d-models/sexy-ninja-red-b5c07fd8a0224c5abe2e11c841ea6a73) by DeathArtGames (https://sketchfab.com/demonartstudio.inc) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/ninja-red.glb",
       "scale": 1,
       "rotation": 0,

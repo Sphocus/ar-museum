@@ -92,6 +92,97 @@
       "scale": 1,
       "rotation": 0,
       "solid": true
+    },
+    {
+      "id": "godzilla",
+      "title": "Godzilla (2021)",
+      "description": "This work is based on \"Godzilla 2021 new rig [OUTDATED]\" (https://sketchfab.com/3d-models/godzilla-2021-new-rig-outdated-be416a6ba27b4496a0c92edacfab40f6) by Scrunchy32205 (https://sketchfab.com/ndoll0571) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/godzilla.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "star-destroyer",
+      "title": "Resurgent-Class Star Destroyer",
+      "description": "This work is based on \"Resurgent-Class Star Destroyer\" (https://sketchfab.com/3d-models/resurgent-class-star-destroyer-4e226c776d534465ba1ceb307b68d34b) by lightwarrior (https://sketchfab.com/lightwarrior) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/star-destroyer.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "asajj-ventress",
+      "title": "Asajj Ventress",
+      "description": "This work is based on \"Star Wars - Asajj Ventress\" (https://sketchfab.com/3d-models/star-wars-asajj-ventress-9d1989e7329c4072897387442818b719) by lazae (https://sketchfab.com/lazae) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/asajj-ventress.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "yoda-starfighter",
+      "title": "Yoda's Starfighter",
+      "description": "This work is based on \"Star Wars - Yodas Star Fighter\" (https://sketchfab.com/3d-models/star-wars-yodas-star-fighter-46c63e1d0c8b4b4cb7ff63b20eb69a94) by lazae (https://sketchfab.com/lazae) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/yoda-starfighter.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "soviet-plane",
+      "title": "WWII Soviet Plane (with interior)",
+      "description": "This work is based on \"WWII Soviet Plane (with interior)\" (https://sketchfab.com/3d-models/wwii-soviet-plane-with-interior-7e23e8dd241e4d0798322014ff2079d1) by Gonzalo Sánchez (https://sketchfab.com/gonz45c) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/soviet-plane.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "mythcreature",
+      "title": "Myth Creature",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/mythcreature.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "lara-croft",
+      "title": "Lara Croft",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/lara-croft.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "mech-drone",
+      "title": "Mech Drone",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/mech-drone.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "rhetorician",
+      "title": "The Rhetorician",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/rhetorician.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "sorceress",
+      "title": "Sorceress",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/sorceress.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "tank-top-woman",
+      "title": "Woman in a white tank top",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/tank-top-woman.glb",
+      "scale": 1,
+      "rotation": 0
     }
   ],
   "exhibitionName": "My Exhibition",

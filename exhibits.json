@@ -218,6 +218,15 @@
       "model": "models/girl.glb",
       "scale": 1,
       "rotation": 0
+    },
+    {
+      "id": "dormitory",
+      "title": "Exilium Dormitory (room)",
+      "description": "This work is based on \"[Girls' Frontline 2: Exilium] Dormitory\" (https://sketchfab.com/3d-models/girls-frontline-2-exilium-dormitory-ae87e285656d491883d0c7bbd5ea8aff) by VuckyZ (https://sketchfab.com/VuckyZ123) licensed under CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/). Modified for web use: textures compressed, meshes merged, background pieces removed. This modified version is shared under the same licence (non-commercial).",
+      "model": "models/dormitory.glb",
+      "scale": 1,
+      "rotation": 0,
+      "ground": false
     }
   ],
   "exhibitionName": "My Exhibition",

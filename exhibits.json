@@ -72,6 +72,14 @@
       "model": "models/leela.glb",
       "scale": 1,
       "rotation": 0
+    },
+    {
+      "id": "lady-dimitrescu",
+      "title": "Lady Dimitrescu",
+      "description": "This work is based on \"Resident Evil Village Lady Dimitrescu 3D Model\" (https://sketchfab.com/3d-models/resident-evil-village-lady-dimitrescu-6e9a99ed44794102b516d611306867c0) by Sandy_boi (https://sketchfab.com/Sandy_boi) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/lady-dimitrescu.glb",
+      "scale": 0.7,
+      "rotation": 0
     }
   ],
   "exhibitionName": "My Exhibition",

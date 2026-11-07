@@ -152,7 +152,7 @@
       "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
       "model": "models/mech-drone.glb",
       "scale": 1,
-      "rotation": 0
+      "rotation": -180
     },
     {
       "id": "rhetorician",

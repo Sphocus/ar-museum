@@ -178,6 +178,14 @@
       "scale": 1,
       "rotation": 0,
       "solid": true
+    },
+    {
+      "id": "spiderman",
+      "title": "Spider-Man",
+      "description": "This work is based on \"Spiderman\" (https://sketchfab.com/3d-models/spiderman-476522e7076c4763a7e3ca4731e0add9) by 1FENIL (https://sketchfab.com/1FENIL) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/spiderman.glb",
+      "scale": 1,
+      "rotation": 0
     }
   ],
   "exhibitionName": "My Exhibition",

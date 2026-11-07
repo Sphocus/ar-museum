@@ -28,7 +28,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 <main id="app"><h1>Exhibition</h1><p class="muted">Loading…</p></main>
 <div id="xr-ui">
   <div id="xr-hint"></div>
-  <div id="xr-bar"><button id="e-move">Move start</button><button id="e-exit">Exit</button></div>
+  <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-move">Move start</button><button id="e-exit">Exit</button></div>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -49,8 +49,18 @@ document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.prevent
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 document.getElementById('e-move').onclick=()=>{
   if(!cur)return;
-  cur.group.clear();cur.mixers.length=0;cur.placed=false;
+  cur.group.clear();cur.mixers.length=0;cur.objs=[];cur.placed=false;
   hint.textContent=START_HINT;
+};
+// Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
+// opening in the direction you are facing. No aiming needed; floor height stays as it was.
+document.getElementById('e-centre').onclick=()=>{
+  if(!cur||!cur.placed||!cur.cam){hint.textContent='Place the exhibition first (aim at the floor and tap).';return}
+  const f=cur.fwd;if(!f||Math.hypot(f.x,f.z)<0.3){hint.textContent='Look out ahead (not straight down), then tap Re-centre.';return}
+  const l=Math.hypot(f.x,f.z);
+  cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
+  cur.layoutAll();
+  hint.textContent='Re-centred: the start spot is now where you stand, opening the way you face.';
 };
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
@@ -91,8 +101,17 @@ async function start(btn){
     const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff}));
     reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
     const group=new THREE.Group();scene.add(group);
-    const state={group,placed:false,session:null,mixers:[]};cur=state;const clock=new THREE.Clock();
+    const state={group,placed:false,session:null,mixers:[],objs:[],base:null,fwd:new THREE.Vector3(),cam:null};cur=state;const clock=new THREE.Clock();
 
+    // Position every exhibit from the stored start spot (base) and each exhibit's layout entry.
+    state.layoutAll=()=>{
+      const {ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
+      for(const {o,L,ex,minY,sc} of state.objs){
+        const x=+L.x||0,z=+L.z||0;
+        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
+        o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
+      }
+    };
     const controller=renderer.xr.getController(0);scene.add(controller);
     controller.addEventListener('select',()=>{
       if(state.placed||!reticle.visible)return;
@@ -101,20 +120,18 @@ async function start(btn){
       let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
       if(len<0.4){hint.textContent='Aim a little further ahead (about 2 m), then tap.';return}
       fx/=len;fz/=len;
-      const th=Math.atan2(-fx,-fz),rx=Math.cos(th),rz=-Math.sin(th);   // right and forward directions on the floor
-      const ox=cam.x,oy=hit.y,oz=cam.z;                                  // start spot = where you stand, floor height from the hit
+      const th=Math.atan2(-fx,-fz);
+      state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
       for(const {L,ex,g,clips} of items){
         const o=SkeletonUtils.clone(g);
         if(clips.length){const mx=new THREE.AnimationMixer(o);clips.forEach(c=>mx.clipAction(c).play());state.mixers.push(mx)}
         const bb=lowestY(o),minY=(ex.ground===false||!isFinite(bb))?0:bb;   // lowest point at full size
         const sc=(+ex.scale||1)*(+L.scale||1);o.scale.setScalar(sc);
-        const x=+L.x||0,z=+L.z||0;
-        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
-        o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
-        group.add(o);
+        state.objs.push({o,L,ex,minY,sc});group.add(o);
       }
+      state.layoutAll();
       state.placed=true;
-      hint.textContent='Exhibition placed. Walk around. If it looks off, tap “Move start” and try again.';
+      hint.textContent='Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”.';
     });
 
     ui.style.display='block';hint.textContent=START_HINT;
@@ -129,7 +146,7 @@ async function start(btn){
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{
-      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z)}}
+      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));state.fwd.y=0}}
       if(frame&&!state.placed){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}

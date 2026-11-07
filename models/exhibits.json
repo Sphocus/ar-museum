@@ -1,0 +1,271 @@
+{
+  "museumName": "My AR Museum",
+  "exhibits": [
+    {
+      "id": "skull",
+      "title": "Skull",
+      "description": "",
+      "model": "models/skull.glb",
+      "scale": 1,
+      "rotation": -90,
+      "ground": false
+    },
+    {
+      "id": "raptor",
+      "title": "Raptor",
+      "description": "Animated raptor. Credit: \"Raptor\" by Motion Miracles (https://sketchfab.com/3d-models/raptor-0e249b0d0800452f991de063b8fd5a2d), licensed CC-BY-4.0.",
+      "model": "models/raptor.glb",
+      "scale": 0.3,
+      "rotation": 0
+    },
+    {
+      "id": "catwoman",
+      "title": "Catwoman",
+      "description": "\"Catwoman\" by DshGames (https://sketchfab.com/3d-models/catwoman-8420acb5236e4da68f53fc691997f1cc), licensed CC-BY-4.0.",
+      "model": "models/catwoman.glb",
+      "scale": 0.9,
+      "rotation": 0
+    },
+    {
+      "id": "bender",
+      "title": "Bender",
+      "description": "\"BENDER\" by Jack Miles (https://sketchfab.com/3d-models/bender-108e843ee7bd4564ab29b98985705e0a), licensed CC-BY-4.0.",
+      "model": "models/bender.glb",
+      "scale": 2,
+      "rotation": 0
+    },
+    {
+      "id": "dragon-girl",
+      "title": "Dragon Girl",
+      "description": "This work is based on \"Dragon Girl\" (https://sketchfab.com/3d-models/dragon-girl-bb37e5437cbf4b0c9c6f219b93ea5c45) by Northcliffe (https://sketchfab.com/Samson.Northcliffe.Rydenko) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/).",
+      "model": "models/dragon-girl.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "alien-queen",
+      "title": "Alien Queen",
+      "description": "This work is based on \"alien_queen_posed_1\" (https://sketchfab.com/3d-models/alien-queen-posed-1-5e094d8a752f4934a56eba3a24fce8ce) by Quasar3000 (https://sketchfab.com/Quasar3000) licensed under CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/).",
+      "model": "models/alien-queen.glb",
+      "scale": 0.01,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "judy-alvarez",
+      "title": "Judy Alvarez",
+      "description": "This work is based on \"Judy Alvarez (Cyberpunk 2077) Realistic 3D Model\" (https://sketchfab.com/3d-models/judy-alvarez-cyberpunk-2077-realistic-3d-model-f7b4b27b737b4495bfcd885b3dc6b1d5) by Iris Hart (https://sketchfab.com/irishart) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/judy-alvarez.glb",
+      "scale": 1.7,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "leela",
+      "title": "Leela",
+      "description": "This work is based on \"Leela Idle\" (https://sketchfab.com/models/3ba543ff66964b608b531730ce22ebd1) by Lada.Repina (https://sketchfab.com/Lada.Repina) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/leela.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "lady-dimitrescu",
+      "title": "Lady Dimitrescu",
+      "description": "This work is based on \"Resident Evil Village Lady Dimitrescu 3D Model\" (https://sketchfab.com/3d-models/resident-evil-village-lady-dimitrescu-6e9a99ed44794102b516d611306867c0) by Sandy_boi (https://sketchfab.com/Sandy_boi) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/lady-dimitrescu.glb",
+      "scale": 0.7,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "fairy-girl",
+      "title": "Fairy girl on a mushroom",
+      "description": "This work is based on \"Fairy girl on a mushroom\" (https://sketchfab.com/3d-models/fairy-girl-on-a-mushroom-77419498721f4e47ad9f95c4dd6fa893) by C.J..Goldman (https://sketchfab.com/C.J..Goldman) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/fairy-girl.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "godzilla",
+      "title": "Godzilla (2021)",
+      "description": "This work is based on \"Godzilla 2021 new rig [OUTDATED]\" (https://sketchfab.com/3d-models/godzilla-2021-new-rig-outdated-be416a6ba27b4496a0c92edacfab40f6) by Scrunchy32205 (https://sketchfab.com/ndoll0571) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/godzilla.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "star-destroyer",
+      "title": "Resurgent-Class Star Destroyer",
+      "description": "This work is based on \"Resurgent-Class Star Destroyer\" (https://sketchfab.com/3d-models/resurgent-class-star-destroyer-4e226c776d534465ba1ceb307b68d34b) by lightwarrior (https://sketchfab.com/lightwarrior) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/star-destroyer.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "asajj-ventress",
+      "title": "Asajj Ventress",
+      "description": "This work is based on \"Star Wars - Asajj Ventress\" (https://sketchfab.com/3d-models/star-wars-asajj-ventress-9d1989e7329c4072897387442818b719) by lazae (https://sketchfab.com/lazae) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/asajj-ventress.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "yoda-starfighter",
+      "title": "Yoda's Starfighter",
+      "description": "This work is based on \"Star Wars - Yodas Star Fighter\" (https://sketchfab.com/3d-models/star-wars-yodas-star-fighter-46c63e1d0c8b4b4cb7ff63b20eb69a94) by lazae (https://sketchfab.com/lazae) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/yoda-starfighter.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "soviet-plane",
+      "title": "WWII Soviet Plane (with interior)",
+      "description": "This work is based on \"WWII Soviet Plane (with interior)\" (https://sketchfab.com/3d-models/wwii-soviet-plane-with-interior-7e23e8dd241e4d0798322014ff2079d1) by Gonzalo Sánchez (https://sketchfab.com/gonz45c) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/soviet-plane.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "mythcreature",
+      "title": "Arachne (Myth Creature)",
+      "description": "This work is based on \"MythCreature Round 3: Arachne Animation\" (https://sketchfab.com/3d-models/mythcreature-round-3-arachne-animation-70b1311e0799411a8f826c2161b6f7bb) by melinastratmann (https://sketchfab.com/melinastratmann) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/mythcreature.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "lara-croft",
+      "title": "Lara Croft",
+      "description": "This work is based on \"ROTTR: LaraCroft\" (https://sketchfab.com/3d-models/rottr-laracroft-873f56b896f245428cf296e2dfe351a7) by DshGames (https://sketchfab.com/DshGames) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/lara-croft.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "mech-drone",
+      "title": "Mech Drone",
+      "description": "This work is based on \"Mech Drone\" (https://sketchfab.com/3d-models/mech-drone-8d06874aac5246c59edb4adbe3606e0e) by Willy Decarpentrie (https://sketchfab.com/skudgee) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/mech-drone.glb",
+      "scale": 1,
+      "rotation": -180
+    },
+    {
+      "id": "rhetorician",
+      "title": "The Rhetorician",
+      "description": "This work is based on \"Rhetorician\" (https://sketchfab.com/3d-models/rhetorician-a89f035291d843069d73988cc0e25399) by engine9 (https://sketchfab.com/engine9) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/rhetorician.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "tank-top-woman",
+      "title": "Woman in a white tank top",
+      "description": "This work is based on \"White tank top woman 3D model\" (https://sketchfab.com/3d-models/white-tank-top-woman-3d-model-ff8f28f010e347abbf30445e00de43e2) by haziz6 (https://sketchfab.com/haziz6) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/tank-top-woman.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "ninja-red",
+      "title": "Red Ninja",
+      "description": "This work is based on \"Sexy Ninja Red\" (https://sketchfab.com/3d-models/sexy-ninja-red-b5c07fd8a0224c5abe2e11c841ea6a73) by DeathArtGames (https://sketchfab.com/demonartstudio.inc) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/ninja-red.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
+    },
+    {
+      "id": "spiderman",
+      "title": "Spider-Man",
+      "description": "This work is based on \"Spiderman\" (https://sketchfab.com/3d-models/spiderman-476522e7076c4763a7e3ca4731e0add9) by 1FENIL (https://sketchfab.com/1FENIL) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/spiderman.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "cowgirl",
+      "title": "Cowgirl",
+      "description": "This work is based on \"Female Cowgirl V4\" (https://sketchfab.com/3d-models/female-cowgirl-v4-17950505a83d4c339fd276c6b3a8addc) by Fadly.W (https://sketchfab.com/Fadly.W) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/cowgirl.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "trex",
+      "title": "Jurassic World T. rex",
+      "description": "This work is based on \"jurassic world dominion t rex(MSFS2024Orbx)\" (https://sketchfab.com/3d-models/jurassic-world-dominion-t-rexmsfs2024orbx-816fefa2774843f4a2f61a4501f3645c) by Yea (https://sketchfab.com/yea) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/trex.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "bikini-woman",
+      "title": "Tied Shirt Bikini Woman",
+      "description": "This work is based on \"Tied Shirt Bikini Woman 3D Model\" (https://sketchfab.com/3d-models/tied-shirt-bikini-woman-3d-model-e63d90d9a9a546abb360077c4f17f672) by jbauer5 (https://sketchfab.com/jbauer5) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/bikini-woman.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "girl",
+      "title": "Girl",
+      "description": "This work is based on \"Girl\" (https://sketchfab.com/3d-models/girl-7d33f78c65124a5ea10bdc03f07bb9de) by distipulo (https://sketchfab.com/distipulo) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
+      "model": "models/girl.glb",
+      "scale": 1,
+      "rotation": 0
+    },
+    {
+      "id": "dormitory",
+      "title": "Exilium Dormitory (room)",
+      "description": "This work is based on \"[Girls' Frontline 2: Exilium] Dormitory\" (https://sketchfab.com/3d-models/girls-frontline-2-exilium-dormitory-ae87e285656d491883d0c7bbd5ea8aff) by VuckyZ (https://sketchfab.com/VuckyZ123) licensed under CC BY-NC-SA 4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/). Modified for web use: textures compressed, meshes merged, background pieces removed. This modified version is shared under the same licence (non-commercial).",
+      "model": "models/dormitory.glb",
+      "scale": 1,
+      "rotation": 0,
+      "ground": false
+    }
+  ],
+  "exhibitionName": "My Exhibition",
+  "layout": [
+    {
+      "exhibit": "skull",
+      "x": -0.8,
+      "z": 1.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "catwoman",
+      "x": 0.8,
+      "z": 1.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "raptor",
+      "x": -0.8,
+      "z": 3.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "bender",
+      "x": 0.8,
+      "z": 3.8,
+      "rotation": 0
+    },
+    {
+      "exhibit": "dragon-girl",
+      "x": -0.8,
+      "z": 6.0,
+      "rotation": 0
+    },
+    {
+      "exhibit": "alien-queen",
+      "x": 1.2,
+      "z": 6.0,
+      "rotation": 0
+    }
+  ]
+}

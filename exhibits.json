@@ -62,8 +62,9 @@
       "title": "Judy Alvarez",
       "description": "This work is based on \"Judy Alvarez (Cyberpunk 2077) Realistic 3D Model\" (https://sketchfab.com/3d-models/judy-alvarez-cyberpunk-2077-realistic-3d-model-f7b4b27b737b4495bfcd885b3dc6b1d5) by Iris Hart (https://sketchfab.com/irishart) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/judy-alvarez.glb",
-      "scale": 0.85,
-      "rotation": 0
+      "scale": 1.7,
+      "rotation": 0,
+      "solid": true
     },
     {
       "id": "leela",
@@ -71,7 +72,8 @@
       "description": "This work is based on \"Leela Idle\" (https://sketchfab.com/models/3ba543ff66964b608b531730ce22ebd1) by Lada.Repina (https://sketchfab.com/Lada.Repina) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/leela.glb",
       "scale": 1,
-      "rotation": 0
+      "rotation": 0,
+      "solid": true
     },
     {
       "id": "lady-dimitrescu",
@@ -79,7 +81,8 @@
       "description": "This work is based on \"Resident Evil Village Lady Dimitrescu 3D Model\" (https://sketchfab.com/3d-models/resident-evil-village-lady-dimitrescu-6e9a99ed44794102b516d611306867c0) by Sandy_boi (https://sketchfab.com/Sandy_boi) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).",
       "model": "models/lady-dimitrescu.glb",
       "scale": 0.7,
-      "rotation": 0
+      "rotation": 0,
+      "solid": true
     }
   ],
   "exhibitionName": "My Exhibition",

@@ -28,7 +28,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 <main id="app"><h1>Exhibition</h1><p class="muted">Loading…</p></main>
 <div id="xr-ui">
   <div id="xr-hint"></div>
-  <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-move">Move start</button><button id="e-exit">Exit</button></div>
+  <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-exit">Exit</button></div>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -47,21 +47,18 @@ let cfg=null,cur=null;
 
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault());
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
-document.getElementById('e-move').onclick=()=>{
-  if(!cur)return;
-  cur.group.clear();cur.mixers.length=0;cur.objs=[];cur.placed=false;
-  hint.textContent=START_HINT;
-};
 // Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
 document.getElementById('e-centre').onclick=()=>{
   if(!cur||!cur.placed||!cur.cam){hint.textContent='Place the exhibition first (aim at the floor and tap).';return}
-  const f=cur.fwd;if(!f||Math.hypot(f.x,f.z)<0.3){hint.textContent='Look out ahead (not straight down), then tap Re-centre.';return}
-  const l=Math.hypot(f.x,f.z);
+  // Only accept the tap when the phone is held up and looking out: within about 30 degrees of level (looking up or down).
+  const f=cur.fwd,l=Math.hypot(f.x,f.z);
+  if(l<MIN_LEVEL){hint.textContent='Hold your phone up and look straight ahead, the way the exhibition should open, then tap Re-centre.';return}
   cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
   cur.layoutAll();
   hint.textContent='Re-centred: the start spot is now where you stand, opening the way you face.';
 };
+const MIN_LEVEL=0.87;   // cos(30 degrees): how level the phone must be for Re-centre. Raise toward 1 to be stricter, lower to be more forgiving.
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
 function page(ok){
@@ -131,7 +128,7 @@ async function start(btn){
       }
       state.layoutAll();
       state.placed=true;
-      hint.textContent='Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”.';
+      hint.textContent='Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.';
     });
 
     ui.style.display='block';hint.textContent=START_HINT;
@@ -146,7 +143,7 @@ async function start(btn){
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{
-      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w));state.fwd.y=0}}
+      if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w))}}
       if(frame&&!state.placed){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}

@@ -183,6 +183,15 @@
       "model": "models/tank-top-woman.glb",
       "scale": 1,
       "rotation": 0
+    },
+    {
+      "id": "ninja-red",
+      "title": "Red Ninja",
+      "description": "CREDIT NEEDED: source and licence not yet confirmed. Do not publish until filled in.",
+      "model": "models/ninja-red.glb",
+      "scale": 1,
+      "rotation": 0,
+      "solid": true
     }
   ],
   "exhibitionName": "My Exhibition",

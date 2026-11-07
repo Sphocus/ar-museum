@@ -51,14 +51,14 @@ document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
 document.getElementById('e-centre').onclick=()=>{
   if(!cur||!cur.placed||!cur.cam){hint.textContent='Place the exhibition first (aim at the floor and tap).';return}
-  // Only accept the tap when the phone is held up and looking out: within about 30 degrees of level (looking up or down).
+  // Only accept the tap when the phone is held up and looking out: within about 60 degrees of level (looking up or down).
   const f=cur.fwd,l=Math.hypot(f.x,f.z);
-  if(l<MIN_LEVEL){hint.textContent='Hold your phone up and look straight ahead, the way the exhibition should open, then tap Re-centre.';return}
+  if(l<MIN_LEVEL){hint.textContent='Raise your phone a little and look ahead, the way the exhibition should open, then tap Re-centre.';return}
   cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
   cur.layoutAll();
   hint.textContent='Re-centred: the start spot is now where you stand, opening the way you face.';
 };
-const MIN_LEVEL=0.87;   // cos(30 degrees): how level the phone must be for Re-centre. Raise toward 1 to be stricter, lower to be more forgiving.
+const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by up to 60 degrees when tapping Re-centre (a normal 30-45 degree placement tilt is fine). 0.87 = 30 degrees (stricter), 0.3 = 72 degrees (forgiving).
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
 function page(ok){

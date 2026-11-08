@@ -36,7 +36,6 @@ code{font-size:.85em;word-break:break-all}
 #panel{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.72);border-radius:16px;padding:8px 10px}
 #panel .row{display:flex;gap:6px;align-items:center;margin-top:6px}
 #panel .row:first-child{margin-top:0}
-#dbg{position:absolute;top:calc(88px + env(safe-area-inset-top,0px));right:12px;font:11px system-ui;background:rgba(0,0,0,.5);padding:3px 7px;border-radius:8px;color:#bbb}
 #panel label{flex:0 0 52px;margin:0;color:#ddd;font-size:13px}
 #panel button{flex:1;min-height:42px;border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:0 8px}
 #panel button.sm{flex:0 0 46px;font-size:18px}
@@ -100,7 +99,6 @@ code{font-size:.85em;word-break:break-all}
 
 <div id="xr-ui">
   <div id="hint" class="hit"></div>
-  <div id="dbg" class="hit"></div>
   <div id="list" class="hit">
     <div class="lh"><span>Choose a model</span><button id="l-cancel">Cancel</button></div>
     <div id="litems"></div>
@@ -332,7 +330,7 @@ async function start(btn){
     const selRing=new THREE.Mesh(new THREE.RingGeometry(0.92,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd24a,depthTest:false,transparent:true,side:THREE.DoubleSide}));
     selRing.renderOrder=999;selRing.visible=false;scene.add(selRing);
 
-    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),tgt:new THREE.Vector3(),sm:null,hitT:-1e9};
+    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),hitT:-1e9};
     session=st;
     const items=st.items;
 
@@ -410,10 +408,8 @@ async function start(btn){
 
     const controller=renderer.xr.getController(0);scene.add(controller);
     const ray=new THREE.Raycaster();
-    st.taps=0;st.sels=0;
-    function dbg(){const f=(performance.now()-st.hitT)<1500;const w=st.win||[],d=$('dbg'),t='floor '+(f?'found':'not found')+(w.length?' · '+w.reduce((a,b)=>a+b,0)+'/'+w.length+' frames'+(st.dist?' · '+st.dist.toFixed(1)+' m':''):'')+' · taps '+st.taps+' · screen taps '+st.sels;if(d.textContent!==t)d.textContent=t}
-    $('b-here').onclick=()=>{st.taps++;onTap(true)};
-    controller.addEventListener('select',()=>{st.sels++;if(!st.viaBtn)onTap(false)});
+    $('b-here').onclick=()=>onTap(true);
+    controller.addEventListener('select',()=>onTap(false));
     async function onTap(viaButton){
       if(st.busy)return;
       const hasHit=(performance.now()-st.hitT)<1500,hit=st.hit;
@@ -473,17 +469,11 @@ async function start(btn){
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const p=vp.transform.position;st.cam.set(p.x,p.y,p.z)}}
       const want=frame&&(st.mode==='start'||st.adding||st.moving);
-      if(want){const h=st.win||(st.win=[]);h.push(frame.getHitTestResults(source).length?1:0);if(h.length>30)h.shift()}
       if(want){
         const hits=frame.getHitTestResults(source);
-        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;
-          // smooth the ring: the phone's floor estimate jumps by ~10 cm now and then, so glide to it instead (flat ring, position only)
-          const m=pose.transform.position;st.tgt.set(m.x,m.y,m.z);
-          if(!st.sm||st.sm.distanceTo(st.tgt)>0.6)st.sm=st.tgt.clone();else st.sm.lerp(st.tgt,0.12);
-          reticle.matrix.makeTranslation(st.sm.x,st.sm.y,st.sm.z);st.hit.copy(st.sm);st.hitT=performance.now();st.dist=Math.hypot(st.hit.x-st.cam.x,st.hit.y-st.cam.y,st.hit.z-st.cam.z)}}
+        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);st.hit.setFromMatrixPosition(reticle.matrix);st.hitT=performance.now()}}
         else if(performance.now()-st.hitT>1200)reticle.visible=false;   // otherwise keep the ring where it was, so a brief loss does not make it blink
       }else reticle.visible=false;
-      if(!st.dt||t-st.dt>500){st.dt=t;dbg()}
       renderer.render(scene,camera);
     });
   }catch(e){

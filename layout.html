@@ -92,6 +92,7 @@ code{font-size:.85em;word-break:break-all}
     <button class="go" id="save">Save gallery to GitHub</button>
     <button class="alt" id="copy">Copy the gallery text instead</button>
     <button class="alt" id="again">Open camera again to keep editing</button>
+    <button class="alt" id="delgal" hidden style="color:#ff8a8a">Delete this gallery…</button>
     <div class="status" id="s-status"></div>
   </div>
   <p class="muted" style="margin-top:24px"><a href="index.html">Back to the museum</a></p>
@@ -149,6 +150,13 @@ function mergeExhibition(cur,exh){
   if(i>=0)list[i]=exh;else list.push(exh);
   out.exhibitions=list;return out;
 }
+// Take one exhibition out of a copy of exhibits.json (the models themselves stay).
+function removeExhibition(cur,id){
+  const out=JSON.parse(JSON.stringify(cur));
+  const list=getExhibitions(out).filter(x=>x.id!==id);
+  delete out.layout;delete out.exhibitionName;
+  out.exhibitions=list;return out;
+}
 function utf8ToB64(str){const bytes=new TextEncoder().encode(str);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
 function b64ToUtf8(b64){const bin=atob(b64.replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 // Save: read the live exhibits.json, change only the exhibitions, write it back. Retries once if the file changed meanwhile.
@@ -168,8 +176,8 @@ async function saveToGitHub(o,exh,f){
     if(!g.ok)throw await explain(g,'Reading exhibits.json');
     const meta=await g.json();
     const cur=JSON.parse(b64ToUtf8(meta.content));
-    const merged=mergeExhibition(cur,exh);
-    const body={message:'Gallery maker: '+exh.name,content:utf8ToB64(JSON.stringify(merged,null,2)+'\n'),sha:meta.sha,branch:o.branch||'main'};
+    const merged=o.remove?removeExhibition(cur,exh.id):mergeExhibition(cur,exh);
+    const body={message:'Gallery maker: '+(o.remove?'deleted ':'')+exh.name,content:utf8ToB64(JSON.stringify(merged,null,2)+'\n'),sha:meta.sha,branch:o.branch||'main'};
     const p=await f(api,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
     if(p.ok)return merged;
     if(p.status===409&&attempt===0)continue;
@@ -213,6 +221,7 @@ function showCount(){
   $('g-count').textContent=n?n+' model'+(n===1?'':'s')+' in this gallery so far.':'No models placed yet.';
   $('go').textContent=n?'Open camera and keep editing':'Open camera and place models';
   $('c-save').hidden=!n;
+  $('delgal').hidden=!(n&&work.id&&getExhibitions(cfg).some(x=>x.id===work.id));
   $('s-sum').textContent=n?summary():'';
 }
 function summary(){
@@ -238,7 +247,7 @@ async function init(){
   const m=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split('/')[1];
   $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');
   $('s-branch').value=store.get('gm_branch')||'main';$('s-token').value=store.get('gm_token');
-  $('save').onclick=doSave;$('copy').onclick=doCopy;
+  $('save').onclick=doSave;$('copy').onclick=doCopy;$('delgal').onclick=doDelete;
 }
 async function doSave(){
   const o={repo:$('s-repo').value.trim(),branch:$('s-branch').value.trim()||'main',token:$('s-token').value.trim()};
@@ -253,6 +262,26 @@ async function doSave(){
     work.id=exh.id;cfg=merged;fillGallerySelect();$('g-sel').value=exh.id;
     const link=new URL('exhibition.html?e='+encodeURIComponent(exh.id),location.href).href;
     setStatus('Saved “'+esc(exh.name)+'”. GitHub Pages takes a few minutes to publish it.<br>Gallery link: <a href="'+esc(link)+'">'+esc(link)+'</a>','ok');
+  }catch(e){setStatus(esc(e&&e.message?e.message:e),'bad')}
+  b.disabled=false;
+}
+let delTimer=null;
+async function doDelete(){
+  const b=$('delgal'),x=getExhibitions(cfg).find(e=>e.id===work.id);if(!x)return;
+  if(!b.dataset.sure){   // first tap only asks; second tap within 6 seconds deletes
+    b.dataset.sure='1';b.textContent='Tap again to delete “'+(x.name||x.id)+'” for good';
+    clearTimeout(delTimer);delTimer=setTimeout(()=>{delete b.dataset.sure;b.textContent='Delete this gallery…'},6000);return;
+  }
+  clearTimeout(delTimer);delete b.dataset.sure;b.textContent='Delete this gallery…';
+  const o={repo:$('s-repo').value.trim(),branch:$('s-branch').value.trim()||'main',token:$('s-token').value.trim(),remove:true};
+  if(!/^[^\/\s]+\/[^\/\s]+$/.test(o.repo)){setStatus('Enter the repository as owner/name.','bad');return}
+  if(!o.token){setStatus('Paste your GitHub token first (see “How to make the token”).','bad');return}
+  b.disabled=true;setStatus('Deleting…');
+  try{
+    const merged=await saveToGitHub(o,x);
+    cfg=merged;work.id=null;work.layout=[];fillGallerySelect();$('g-sel').value='';loadChoice();
+    setStatus('');$('note').textContent='Deleted “'+(x.name||x.id)+'”. Its link and QR code stop working once GitHub Pages republishes, in a few minutes. The models themselves are untouched.';
+    window.scrollTo({top:0,behavior:'smooth'});
   }catch(e){setStatus(esc(e&&e.message?e.message:e),'bad')}
   b.disabled=false;
 }

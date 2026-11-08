@@ -275,6 +275,7 @@
     {
       "id": "first-test",
       "name": "First test",
+      "recentreAtStart": true,
       "layout": [
         {
           "exhibit": "cowgirl",

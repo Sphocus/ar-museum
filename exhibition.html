@@ -48,7 +48,7 @@ function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.V
   if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
 const app=document.getElementById('app'),ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let cfg=null,cur=null,exh=null;   // exh = the exhibition being shown (name, description, layout)
+let cfg=null,cur=null,exh=null,isDraft=false;   // isDraft: a test run of a gallery that is not saved yet (from the gallery maker)   // exh = the exhibition being shown (name, description, layout)
 // Several exhibitions: cfg.exhibitions = [{id,name,description,layout}]. An older file with one top-level "layout" still works as a single exhibition.
 function getExhibitions(c){
   if(Array.isArray(c.exhibitions)&&c.exhibitions.length)return c.exhibitions;
@@ -93,7 +93,7 @@ const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, to
 
 function page(ok){
   const n=(exh.layout||[]).length,many=getExhibitions(cfg).filter(x=>!x.unlisted).length>1;
-  app.innerHTML=`<h1>${esc(exh.name||'Exhibition')}</h1>
+  app.innerHTML=(isDraft?'<div class="card" style="border-color:var(--accent)"><b>Test run</b><div class="muted">This gallery is not saved. You are seeing it the way a visitor will. <a href="layout.html">Back to the gallery maker</a></div></div>':'')+`<h1>${esc(exh.name||'Exhibition')}</h1>
   <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.${exh.room&&exh.room.width>0&&exh.room.depth>0?' Needs a space of about '+(+exh.room.width)+' × '+(+exh.room.depth)+' m.':''}</p>
   <div class="card"><b>How it works</b><ol>
     <li>Stand on the marked start spot (or wherever you want the exhibition to begin).</li>
@@ -210,6 +210,11 @@ async function start(btn){
   try{ok=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){}
   try{cfg=await (await fetch('exhibits.json?t='+Date.now(),{cache:'no-store'})).json()}
   catch(e){app.textContent='Could not load exhibits.json. Is this page served over https?';return}
+  if(new URLSearchParams(location.search).get('draft')){   // test run from the gallery maker
+    let d=null;try{d=JSON.parse(sessionStorage.getItem('gm_draft'))}catch(e){}
+    if(!d||!Array.isArray(d.layout)||!d.layout.length){app.innerHTML='<h1>Test run</h1><p class="muted">There is no test gallery to show. Open the gallery maker, place your models, then tap “Try it as a visitor”.</p><p><a href="layout.html">Back to the gallery maker</a></p>';return}
+    exh=d;isDraft=true;document.title=(exh.name||'Gallery')+' (test)';page(ok);return;
+  }
   const all=getExhibitions(cfg),want=new URLSearchParams(location.search).get('e');
   if(!all.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No exhibition has been set up yet.</p>';return}
   const listed=all.filter(x=>!x.unlisted);   // unlisted exhibitions are left out of the list but still open from their own link

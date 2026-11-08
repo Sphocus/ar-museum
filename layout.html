@@ -118,6 +118,7 @@ code{font-size:.85em;word-break:break-all}
       <li>Only you can save while the token stays private. Delete it in GitHub any time to switch saving off.</li></ol></details>
     <div id="save-btns">
     <button class="go" id="save">Save gallery to GitHub</button>
+    <button class="alt" id="try">Try it as a visitor (nothing is saved)</button>
     <button class="alt" id="copy">Copy the gallery text instead</button>
     <button class="alt" id="again">Open camera again to keep editing</button>
     <button class="alt" id="delgal" hidden style="color:#ff8a8a">Delete this gallery…</button>
@@ -382,7 +383,7 @@ async function init(){
   const m=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split('/')[1];
   $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');
   $('s-branch').value=store.get('gm_branch')||'main';$('s-token').value=store.get('gm_token');
-  $('save').onclick=doSave;$('copy').onclick=doCopy;$('delgal').onclick=doDelete;
+  $('save').onclick=doSave;$('copy').onclick=doCopy;$('try').onclick=doTry;$('delgal').onclick=doDelete;
   $('u-file').onchange=onModelFile;$('u-go').onclick=doUpload;
 }
 async function doSave(){
@@ -532,6 +533,13 @@ async function doDelete(){
     window.scrollTo({top:0,behavior:'smooth'});
   }catch(e){setStatus(esc(e&&e.message?e.message:e),'bad')}
   b.disabled=false;
+}
+// Walk-through: hand the unsaved gallery to the exhibition page, which runs it exactly as a visitor would see it.
+function doTry(){
+  if(!work.layout.length){setStatus('There are no models in this gallery yet.','bad');return}
+  try{sessionStorage.setItem('gm_draft',JSON.stringify(currentExhibition()))}
+  catch(e){setStatus('This browser would not let the test start (storage is blocked).','bad');return}
+  location.href='exhibition.html?draft=1';
 }
 async function doCopy(){
   const txt=JSON.stringify(currentExhibition(),null,2);

@@ -23,17 +23,22 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 #xr-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;pointer-events:auto}
 #xr-info{display:none;position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-height:45vh;overflow:auto;background:rgba(0,0,0,.8);border-radius:14px;padding:14px 16px;pointer-events:auto}
 #xr-info b{display:block;font-size:17px;margin-bottom:4px;padding-right:56px}
+#xr-info.anim b{padding-right:150px}
+#xr-info #i-anim{display:none;right:88px}
+#xr-info.anim #i-anim{display:block}
 #xr-info p{margin:6px 0 0;font-size:14px;line-height:1.45;color:#e8e8e8;overflow-wrap:anywhere;white-space:pre-wrap}
 #xr-info button{position:absolute;top:8px;right:8px;font:600 14px system-ui;padding:8px 14px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff}
 #xr-bar button{font:600 15px system-ui;padding:12px 18px;border:0;border-radius:999px;background:rgba(0,0,0,.7);color:#fff}
+#xr-bar button:disabled{opacity:.4}
+#xr-bar button.on{background:#e08a93;color:#000}
 </style>
 </head>
 <body>
 <main id="app"><h1>Exhibition</h1><p class="muted">Loading…</p></main>
 <div id="xr-ui">
   <div id="xr-hint"></div>
-  <div id="xr-info"><button id="i-close">Close</button><b id="i-title"></b><p id="i-desc"></p></div>
-  <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-exit">Exit</button></div>
+  <div id="xr-info"><button id="i-close">Close</button><button id="i-anim">Pause</button><b id="i-title"></b><p id="i-desc"></p></div>
+  <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-labels" disabled>Labels</button><button id="e-exit">Exit</button></div>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -84,14 +89,31 @@ function say(t,ms){hint.textContent=t;hint.style.display='block';clearTimeout(hi
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault());
 const infoBox=document.getElementById('xr-info');
 infoBox.addEventListener('beforexrselect',e=>e.preventDefault());
-// The info card for a model the visitor tapped: its title, then its description (credit and licence).
-function showInfo(ex){
+// The info card for a model the visitor tapped: its title, then its description (credit and licence). Animated models get a Pause / Play button.
+let infoItem=null;
+const animBtn=document.getElementById('i-anim');
+function showInfo(item){
+  const ex=item.ex;infoItem=item;
   document.getElementById('i-title').textContent=ex.title||ex.id;
   const d=document.getElementById('i-desc');d.textContent=ex.description||'';d.style.display=ex.description?'block':'none';
+  infoBox.classList.toggle('anim',!!item.mixer);animBtn.textContent=item.paused?'Play':'Pause';
   infoBox.scrollTop=0;infoBox.style.display='block';
 }
-function hideInfo(){infoBox.style.display='none'}
+function hideInfo(){infoBox.style.display='none';infoItem=null}
 document.getElementById('i-close').onclick=hideInfo;
+animBtn.onclick=()=>{const it=infoItem;if(!it||!it.mixer)return;it.paused=!it.paused;it.mixer.timeScale=it.paused?0:1;animBtn.textContent=it.paused?'Play':'Pause'};   // the model stays paused after the card closes; it restarts on the next visit
+// A name label that floats above a model: a small dark pill with the title, always facing the visitor and a steady size on screen.
+function makeLabel(text){
+  const H=72,font='600 36px system-ui,sans-serif',c=document.createElement('canvas'),g=c.getContext('2d');g.font=font;
+  let t=String(text||'');if(g.measureText(t).width>440){while(g.measureText(t+'…').width>440&&t.length>3)t=t.slice(0,-1);t=t.trim()+'…'}
+  const w=Math.ceil(g.measureText(t).width)+44;c.width=w;c.height=H;
+  g.font=font;g.fillStyle='rgba(0,0,0,0.75)';
+  if(g.roundRect){g.beginPath();g.roundRect(0,0,w,H,H/2);g.fill()}else g.fillRect(0,0,w,H);
+  g.fillStyle='#fff';g.textBaseline='middle';g.fillText(t,22,H/2+2);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,sizeAttenuation:false,depthWrite:false}));
+  sp.scale.set(0.075*w/H,0.075,1);sp.renderOrder=10;sp.visible=false;return sp}
+const labelBtn=document.getElementById('e-labels');
+labelBtn.onclick=()=>{if(!cur||!cur.placed)return;cur.labelsOn=!cur.labelsOn;cur.objs.forEach(x=>{x.lb.visible=cur.labelsOn});labelBtn.classList.toggle('on',cur.labelsOn)};
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
@@ -161,11 +183,12 @@ async function start(btn){
     state.showStart=()=>{marker.position.set(state.base.ox,state.base.oy+0.01,state.base.oz);marker.rotation.y=state.base.th;state.markerUntil=performance.now()+10000};
     state.layoutAll=()=>{
       const {ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
-      for(const {o,L,ex,minY,sc,sh,lbox} of state.objs){
+      for(const {o,L,ex,minY,sc,sh,lbox,lb} of state.objs){
         const x=+L.x||0,z=+L.z||0;
         o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
         o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
-        setShadow(sh,boxOf(o,lbox),oy+(+L.y||0));
+        const bx=boxOf(o,lbox);setShadow(sh,bx,oy+(+L.y||0));
+        lb.position.set((bx.min.x+bx.max.x)/2,bx.max.y+0.18,(bx.min.z+bx.max.z)/2);   // just above the top of the model
       }
     };
     const controller=renderer.xr.getController(0);scene.add(controller);
@@ -177,7 +200,7 @@ async function start(btn){
         const hits=ray.intersectObjects(state.objs.map(i=>i.o),true);
         let found=null;
         if(hits.length){let o=hits[0].object;while(o&&!found){found=state.objs.find(i=>i.o===o)||null;o=o.parent}}
-        if(found)showInfo(found.ex);else hideInfo();
+        if(found)showInfo(found);else hideInfo();
         return;
       }
       if(!reticle.visible)return;
@@ -190,13 +213,14 @@ async function start(btn){
       state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
       for(const {L,ex,g,clips} of items){
         const o=SkeletonUtils.clone(g);
-        if(clips.length){const mx=new THREE.AnimationMixer(o);clips.forEach(c=>mx.clipAction(c).play());state.mixers.push(mx)}
+        let mx=null;
+        if(clips.length){mx=new THREE.AnimationMixer(o);clips.forEach(c=>mx.clipAction(c).play());state.mixers.push(mx)}
         const bb=lowestY(o),minY=(ex.ground===false||!isFinite(bb))?0:bb;   // lowest point at full size
         const sc=(+ex.scale||1)*(+L.scale||1);o.scale.setScalar(sc);
-        const sh=makeShadow();state.objs.push({o,L,ex,minY,sc,sh,lbox:skinnedBox(o)});group.add(o);group.add(sh);
+        const sh=makeShadow(),lb=makeLabel(ex.title||ex.id);state.objs.push({o,L,ex,minY,sc,sh,lb,lbox:skinnedBox(o),mixer:mx,paused:false});group.add(o);group.add(sh);group.add(lb);
       }
       state.layoutAll();
-      state.placed=true;
+      state.placed=true;labelBtn.disabled=false;
       say('Exhibition placed. Walk around, and tap a model to read about it. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
     });
 
@@ -208,7 +232,7 @@ async function start(btn){
     const viewer=await session.requestReferenceSpace('viewer');
     const source=await session.requestHitTestSource({space:viewer});
     session.addEventListener('end',()=>{
-      renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();cur=null;renderer.dispose();
+      renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();labelBtn.disabled=true;labelBtn.classList.remove('on');cur=null;renderer.dispose();
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{

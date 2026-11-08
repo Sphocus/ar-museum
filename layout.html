@@ -332,7 +332,7 @@ async function start(btn){
     const selRing=new THREE.Mesh(new THREE.RingGeometry(0.92,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd24a,depthTest:false,transparent:true,side:THREE.DoubleSide}));
     selRing.renderOrder=999;selRing.visible=false;scene.add(selRing);
 
-    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),hitT:-1e9};
+    const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),tgt:new THREE.Vector3(),sm:null,hitT:-1e9};
     session=st;
     const items=st.items;
 
@@ -476,7 +476,11 @@ async function start(btn){
       if(want){const h=st.win||(st.win=[]);h.push(frame.getHitTestResults(source).length?1:0);if(h.length>30)h.shift()}
       if(want){
         const hits=frame.getHitTestResults(source);
-        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);st.hit.setFromMatrixPosition(reticle.matrix);st.hitT=performance.now();st.dist=Math.hypot(st.hit.x-st.cam.x,st.hit.y-st.cam.y,st.hit.z-st.cam.z)}}
+        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;
+          // smooth the ring: the phone's floor estimate jumps by ~10 cm now and then, so glide to it instead (flat ring, position only)
+          const m=pose.transform.position;st.tgt.set(m.x,m.y,m.z);
+          if(!st.sm||st.sm.distanceTo(st.tgt)>0.6)st.sm=st.tgt.clone();else st.sm.lerp(st.tgt,0.12);
+          reticle.matrix.makeTranslation(st.sm.x,st.sm.y,st.sm.z);st.hit.copy(st.sm);st.hitT=performance.now();st.dist=Math.hypot(st.hit.x-st.cam.x,st.hit.y-st.cam.y,st.hit.z-st.cam.z)}}
         else if(performance.now()-st.hitT>1200)reticle.visible=false;   // otherwise keep the ring where it was, so a brief loss does not make it blink
       }else reticle.visible=false;
       if(!st.dt||t-st.dt>500){st.dt=t;dbg()}

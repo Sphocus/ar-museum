@@ -411,7 +411,7 @@ async function start(btn){
     const controller=renderer.xr.getController(0);scene.add(controller);
     const ray=new THREE.Raycaster();
     st.taps=0;st.sels=0;
-    function dbg(){const f=(performance.now()-st.hitT)<1500;const d=$('dbg'),t='floor '+(f?'found':'not found')+' · taps '+st.taps+' · screen taps '+st.sels;if(d.textContent!==t)d.textContent=t}
+    function dbg(){const f=(performance.now()-st.hitT)<1500;const w=st.win||[],d=$('dbg'),t='floor '+(f?'found':'not found')+(w.length?' · '+w.reduce((a,b)=>a+b,0)+'/'+w.length+' frames'+(st.dist?' · '+st.dist.toFixed(1)+' m':''):'')+' · taps '+st.taps+' · screen taps '+st.sels;if(d.textContent!==t)d.textContent=t}
     $('b-here').onclick=()=>{st.taps++;onTap(true)};
     controller.addEventListener('select',()=>{st.sels++;if(!st.viaBtn)onTap(false)});
     async function onTap(viaButton){
@@ -473,10 +473,11 @@ async function start(btn){
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const p=vp.transform.position;st.cam.set(p.x,p.y,p.z)}}
       const want=frame&&(st.mode==='start'||st.adding||st.moving);
+      if(want){const h=st.win||(st.win=[]);h.push(frame.getHitTestResults(source).length?1:0);if(h.length>30)h.shift()}
       if(want){
         const hits=frame.getHitTestResults(source);
-        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;reticle.material.opacity=1;reticle.matrix.fromArray(pose.transform.matrix);st.hit.setFromMatrixPosition(reticle.matrix);st.hitT=performance.now()}}
-        else{const age=performance.now()-st.hitT;if(age>1200)reticle.visible=false;else reticle.material.opacity=age<300?1:0.45}   // keep the ring where it was, dimmed, so a brief loss does not make it blink
+        if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);st.hit.setFromMatrixPosition(reticle.matrix);st.hitT=performance.now();st.dist=Math.hypot(st.hit.x-st.cam.x,st.hit.y-st.cam.y,st.hit.z-st.cam.z)}}
+        else if(performance.now()-st.hitT>1200)reticle.visible=false;   // otherwise keep the ring where it was, so a brief loss does not make it blink
       }else reticle.visible=false;
       if(!st.dt||t-st.dt>500){st.dt=t;dbg()}
       renderer.render(scene,camera);

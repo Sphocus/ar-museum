@@ -52,6 +52,7 @@ code{font-size:.85em;word-break:break-all}
 #panel label{flex:0 0 52px;margin:0;color:#ddd;font-size:13px}
 #panel button{flex:1;min-height:42px;border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:0 8px}
 #panel button.sm{flex:0 0 46px;font-size:18px}
+#panel button:disabled{opacity:.35}
 #panel button.on{background:#e08a93;color:#000}
 #panel button.primary{background:#8c2f39}
 #panel input[type=range]{flex:1;min-width:0;height:34px}
@@ -169,7 +170,7 @@ code{font-size:.85em;word-break:break-all}
       <div class="row"><button id="b-default">Make this the default for this model…</button></div>
     </div>
     <div class="row" id="here-row" style="display:none"><button id="b-here" class="primary" style="min-height:52px;font-size:16px">Set start spot here</button></div>
-    <div class="row"><button id="b-add">Add model</button><button id="b-start">Start spot</button><button id="b-done" class="primary">Lock &amp; save</button></div>
+    <div class="row"><button id="b-undo" style="flex:0 0 66px" disabled>↶ Undo</button><button id="b-add">Add model</button><button id="b-start">Start spot</button><button id="b-done" class="primary">Lock &amp; save</button></div>
   </div>
 </div>
 
@@ -666,7 +667,32 @@ async function start(btn){
       $('b-add').disabled=st.mode==='start';$('b-start').disabled=st.mode==='start';
       setHint();
     }
-    function change(fn){const it=st.sel;if(!it)return;fn(it);place(it);updateRing();refresh()}
+    /* ---- undo: before each change, remember every model and its placement; Undo puts the last remembered state back ---- */
+    const undoStack=[];let lastEditAt=0,lastEditIt=null;
+    const nm=it=>'“'+(it.ex.title||it.ex.id)+'”';
+    function snap(label,it){
+      undoStack.push({label,list:items.map(i=>({it:i,L:Object.assign({},i.L)}))});
+      if(undoStack.length>60)undoStack.shift();
+      lastEditAt=0;lastEditIt=null;updateUndo();
+    }
+    function updateUndo(){$('b-undo').disabled=!undoStack.length}
+    function undo(){
+      if(st.busy||!undoStack.length)return;
+      const s=undoStack.pop(),keep=new Set(s.list.map(x=>x.it));
+      for(const i of items)if(!keep.has(i))group.remove(i.o);
+      items.splice(0,items.length,...s.list.map(x=>x.it));
+      for(const x of s.list){Object.assign(x.it.L,x.L);if(x.it.o.parent!==group)group.add(x.it.o);place(x.it)}
+      st.moving=false;st.adding=null;
+      if(st.sel&&!keep.has(st.sel))st.sel=null;
+      lastEditAt=0;lastEditIt=null;updateRing();updateUndo();refresh();
+      hint('Undone: '+s.label+'.',3500,true);
+    }
+    $('b-undo').onclick=undo;
+    function change(fn){const it=st.sel;if(!it)return;
+      const now=performance.now();   // a drag or a held button counts as one change
+      if(!(lastEditIt===it&&now-lastEditAt<1500))snap('changed '+nm(it));
+      lastEditIt=it;lastEditAt=now;
+      fn(it);place(it);updateRing();refresh()}
     $('s-rng').oninput=e=>change(it=>{it.L.scale=Math.pow(2,+e.target.value)});
     hold($('s-dn'),()=>change(it=>{it.L.scale=Math.min(8,Math.max(0.125,it.L.scale*Math.pow(2,-0.05)))}));
     hold($('s-up'),()=>change(it=>{it.L.scale=Math.min(8,Math.max(0.125,it.L.scale*Math.pow(2,0.05)))}));
@@ -677,11 +703,11 @@ async function start(btn){
     hold($('h-up'),()=>change(it=>{it.L.y=r2((it.L.y||0)+0.05)}));
     $('b-move').onclick=()=>{if(st.sel){st.moving=!st.moving;st.adding=null;refresh()}};
     $('b-close').onclick=()=>select(null);
-    $('b-del').onclick=()=>{const it=st.sel;if(!it)return;group.remove(it.o);items.splice(items.indexOf(it),1);select(null)};
+    $('b-del').onclick=()=>{const it=st.sel;if(!it)return;snap('deleted '+nm(it));group.remove(it.o);items.splice(items.indexOf(it),1);select(null)};
     $('b-copy').onclick=async()=>{
-      const it=st.sel;if(!it||st.busy)return;st.busy=true;setHint();
+      const it=st.sel;if(!it||st.busy)return;st.busy=true;setHint();snap('copied '+nm(it));
       try{const n=await addItem(it.ex,Object.assign({},it.L,{x:r2(it.L.x+0.5)}));st.busy=false;select(n)}
-      catch(e){st.busy=false;hint('Could not copy: '+(e.message||e))}
+      catch(e){undoStack.pop();updateUndo();st.busy=false;hint('Could not copy: '+(e.message||e))}
     };
     /* ---- make the selected model's size/direction/floor setting its default, saved to exhibits.json ---- */
     let dGround=true;
@@ -718,7 +744,7 @@ async function start(btn){
           message:'Gallery maker: default size and direction for '+(ex.title||id)}),null);
         // bring everything on screen in line with the new default
         ex.scale=d.scale;ex.rotation=d.rotation;if(dGround)delete ex.ground;else ex.ground=false;
-        it.L.scale=1;it.L.rotation=0;
+        it.L.scale=1;it.L.rotation=0;undoStack.length=0;updateUndo();   // the saved default changes what the old placements mean, so earlier steps can no longer be undone
         items.filter(i=>i.ex.id===id).forEach(i=>{i.minY=(ex.ground===false||!isFinite(i.low))?0:i.low;place(i)});
         renderModels();
         $('dpanel').style.display='none';$('panel').style.display='block';st.busy=false;
@@ -763,14 +789,14 @@ async function start(btn){
       if(st.adding||st.moving){
         const p=floorToLocal(st.base,hit.x,hit.z),dy=hit.y-st.base.oy,y=Math.abs(dy)>0.08?r2(dy):0;
         if(st.moving&&st.sel){
-          Object.assign(st.sel.L,{x:r2(p.x),z:r2(p.z),y});st.moving=false;place(st.sel);updateRing();refresh();
+          snap('moved '+nm(st.sel));Object.assign(st.sel.L,{x:r2(p.x),z:r2(p.z),y});st.moving=false;place(st.sel);updateRing();refresh();
         }else if(st.adding){
-          const ex=st.adding;st.adding=null;st.busy=true;setHint();
+          const ex=st.adding;st.adding=null;st.busy=true;setHint();snap('added “'+(ex.title||ex.id)+'”');
           try{
             const face=faceRotation(st.base,ex,hit.x,hit.z,st.cam.x,st.cam.z);   // new models turn to face you
             const it=await addItem(ex,{x:r2(p.x),y,z:r2(p.z),rotation:Math.round(face),scale:1});
             st.busy=false;select(it);
-          }catch(e){st.busy=false;hint('Could not load “'+(ex.title||ex.id)+'”: '+(e.message||e))}
+          }catch(e){undoStack.pop();updateUndo();st.busy=false;hint('Could not load “'+(ex.title||ex.id)+'”: '+(e.message||e))}
         }
         return;
       }

@@ -301,6 +301,28 @@
           "scale": 1
         }
       ]
+    },
+    {
+      "id": "second-test",
+      "name": "Second test",
+      "layout": [
+        {
+          "exhibit": "judy-alvarez",
+          "x": -0.87,
+          "y": -0.25,
+          "z": 2.54,
+          "rotation": 21,
+          "scale": 1.072
+        },
+        {
+          "exhibit": "catwoman",
+          "x": 0.33,
+          "y": 0,
+          "z": 2.38,
+          "rotation": -3,
+          "scale": 1
+        }
+      ]
     }
   ]
 }

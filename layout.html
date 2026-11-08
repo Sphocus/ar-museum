@@ -17,6 +17,9 @@ h1{font-size:1.8rem;margin:0 0 6px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px;font-family:system-ui,sans-serif}
 .card[hidden]{display:none}
 label{display:block;margin-top:12px;font-size:.9rem;color:var(--muted)}
+input[type=file]{width:100%;margin-top:6px;color:var(--text);font:16px system-ui}
+textarea{width:100%;margin-top:4px;padding:11px 12px;font:16px system-ui;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);box-sizing:border-box;resize:vertical}
+#add-model{margin-top:14px}#add-model summary{cursor:pointer;font-weight:600}
 input[type=text],input[type=password],input[type=number],select{width:100%;margin-top:4px;padding:11px 12px;font:16px system-ui;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text)}
 label.chk{display:flex;align-items:center;gap:10px;color:var(--text);font-size:.95rem}
 label.chk input{width:20px;height:20px;margin:0;flex:none}
@@ -125,8 +128,19 @@ code{font-size:.85em;word-break:break-all}
     <b>3. Models</b>
     <p class="muted" id="m-sum"></p>
     <details><summary>All models: hide or make public</summary><div id="m-list"></div></details>
-    <p class="muted">A new model: add its entry to exhibits.json with <code>"unlisted": true</code>. It then shows here and in the camera list, but not in the public gallery. Set its default size and direction in the camera (<b>Make default</b>), then tap <b>Make public</b> when it is ready.</p>
     <div class="status" id="m-status"></div>
+    <details id="add-model"><summary>Add a new model</summary>
+      <p class="muted">Pick the finished .glb file. It is uploaded to the <code>models</code> folder and added as <b>unlisted</b>, so it shows in the camera list but not in the public gallery. Set its default size and direction in the camera (<b>Make default</b>), then tap <b>Make public</b> here when it is ready. Uses the token from step 2.</p>
+      <label>Model file (.glb)
+        <input type="file" id="u-file" accept=".glb,model/gltf-binary"></label>
+      <div class="status" id="u-info"></div>
+      <label>Title
+        <input type="text" id="u-title" maxlength="60" placeholder="e.g. Space marine"></label>
+      <label>Description and credit (optional)
+        <textarea id="u-desc" rows="3" maxlength="600" placeholder='e.g. "Space marine" by Someone (link), licensed CC-BY-4.0.'></textarea></label>
+      <button id="u-go" disabled>Upload model</button>
+      <div class="status" id="u-status"></div>
+    </details>
   </div>
   <p class="muted" style="margin-top:24px"><a href="index.html">Back to the museum</a></p>
 </main>
@@ -217,18 +231,49 @@ function defaultsFromPlacement(ex,L){return {scale:Math.round((+ex.scale||1)*(+L
 function galleriesUsing(c,id){return getExhibitions(c).map(g=>({name:g.name||g.id,n:(g.layout||[]).filter(L=>L.exhibit===id).length})).filter(x=>x.n)}
 function utf8ToB64(str){const bytes=new TextEncoder().encode(str);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
 function b64ToUtf8(b64){const bin=atob(b64.replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
+// ---- adding a new model: size limits, file checks, upload ----
+const MB=1048576,WARN_MB=15,MAX_MB=25;
+function sizeVerdict(n){return n>MAX_MB*MB?'refuse':n>WARN_MB*MB?'warn':'ok'}
+// A binary glTF (.glb) starts with the letters "glTF" and version 2.
+function isGlb(b){return !!b&&b.length>=12&&b[0]===0x67&&b[1]===0x6C&&b[2]===0x54&&b[3]===0x46&&b[4]===2&&b[5]===0&&b[6]===0&&b[7]===0}
+function modelFileName(n){const b=String(n||'').replace(/\.[^.]*$/,'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,50);return (b||'model')+'.glb'}
+function titleFromFileName(n){const t=String(n||'').replace(/\.[^.]*$/,'').replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim();return t?t.charAt(0).toUpperCase()+t.slice(1):''}
+// Add a new, unlisted model entry to a copy of exhibits.json. Returns {out,id}.
+function addExhibit(cur,f){
+  const out=JSON.parse(JSON.stringify(cur));out.exhibits=out.exhibits||[];
+  const used=new Set(out.exhibits.map(x=>x.id));let base=slug(f.title);if(base==='gallery'&&!/gallery/i.test(f.title))base='model';
+  let id=base,n=2;while(used.has(id))id=base+'-'+(n++);
+  out.exhibits.push({id,title:f.title,description:f.description||'',model:f.model,scale:1,rotation:0,unlisted:true});
+  return {out,id};
+}
+function bytesToB64(bytes){let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
+function ghHeaders(o){return {Authorization:'Bearer '+o.token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}}
+async function ghExplain(r,what){
+  let m='';try{m=(await r.json()).message||''}catch(e){}
+  if(r.status===401)return new Error('GitHub did not accept the token (401). Check it was copied in full and has not expired.');
+  if(r.status===403)return new Error('GitHub refused (403). The token may lack "Contents: Read and write" for this repository. '+m);
+  if(r.status===404)return new Error('Not found (404). Check the repository name and branch, and that the token can access this repository.');
+  return new Error(what+' failed ('+r.status+'). '+m);
+}
+const ghFileUrl=(o,p)=>'https://api.github.com/repos/'+o.repo+'/contents/'+p.split('/').map(encodeURIComponent).join('/');
+// Is there already a file at this path? Returns its sha, or null.
+async function fileShaOnGitHub(o,p,f){
+  f=f||fetch;const g=await f(ghFileUrl(o,p)+'?ref='+encodeURIComponent(o.branch||'main'),{headers:ghHeaders(o),cache:'no-store'});
+  if(g.status===404)return null;if(!g.ok)throw await ghExplain(g,'Checking for the file');
+  return (await g.json()).sha||null;
+}
+// Upload (or, with sha, replace) one file.
+async function uploadFileToGitHub(o,p,bytes,sha,message,f){
+  f=f||fetch;const body={message:message||('Gallery maker: added '+p),content:bytesToB64(bytes),branch:o.branch||'main'};if(sha)body.sha=sha;
+  const r=await f(ghFileUrl(o,p),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},ghHeaders(o)),body:JSON.stringify(body)});
+  if(!r.ok)throw await ghExplain(r,'Uploading the model');
+}
 // Save: read the live exhibits.json, change only the exhibitions, write it back. Retries once if the file changed meanwhile.
 async function saveToGitHub(o,exh,f){
   f=f||fetch;
   const api='https://api.github.com/repos/'+o.repo+'/contents/'+(o.path||'exhibits.json');
-  const H={Authorization:'Bearer '+o.token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
-  const explain=async(r,what)=>{
-    let m='';try{m=(await r.json()).message||''}catch(e){}
-    if(r.status===401)return new Error('GitHub did not accept the token (401). Check it was copied in full and has not expired.');
-    if(r.status===403)return new Error('GitHub refused (403). The token may lack "Contents: Read and write" for this repository. '+m);
-    if(r.status===404)return new Error('Not found (404). Check the repository name and branch, and that the token can access this repository.');
-    return new Error(what+' failed ('+r.status+'). '+m);
-  };
+  const H=ghHeaders(o);
+  const explain=ghExplain;
   for(let attempt=0;attempt<2;attempt++){
     const g=await f(api+'?ref='+encodeURIComponent(o.branch||'main'),{headers:H,cache:'no-store'});
     if(!g.ok)throw await explain(g,'Reading exhibits.json');
@@ -323,6 +368,7 @@ async function init(){
   $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');
   $('s-branch').value=store.get('gm_branch')||'main';$('s-token').value=store.get('gm_token');
   $('save').onclick=doSave;$('copy').onclick=doCopy;$('delgal').onclick=doDelete;
+  $('u-file').onchange=onModelFile;$('u-go').onclick=doUpload;
 }
 async function doSave(){
   const o={repo:$('s-repo').value.trim(),branch:$('s-branch').value.trim()||'main',token:$('s-token').value.trim()};
@@ -372,6 +418,60 @@ async function toggleListed(b){
     renderModels();
     setMStatus('“'+esc(e.title||e.id)+'” is now '+(makePublic?'public':'unlisted')+'. GitHub Pages takes a few minutes to publish it.','ok');
   }catch(err){b.disabled=false;setMStatus(esc(err&&err.message?err.message:err),'bad')}
+}
+
+/* ---- models: add a new one (upload the file and add its entry) ---- */
+let upBytes=null,upName='',upSure=null,upTimer=null,upDone=null,autoTitle='';
+function setUp(msg,cls){const s=$('u-status');s.className='status '+(cls||'');s.innerHTML=msg}
+function setUpInfo(msg,cls){const s=$('u-info');s.className='status '+(cls||'');s.innerHTML=msg}
+const mbText=n=>(n/MB).toFixed(1)+' MB';
+async function onModelFile(){
+  const file=$('u-file').files[0];upBytes=null;upSure=null;upDone=null;setUp('');$('u-go').disabled=true;$('u-go').textContent='Upload model';
+  if(!file){setUpInfo('');return}
+  if(file.size>MAX_MB*MB){setUpInfo(esc(file.name)+' is '+mbText(file.size)+'. The limit is '+MAX_MB+' MB. Shrink the model first (fewer polygons or smaller textures).','bad');return}
+  let bytes;try{bytes=new Uint8Array(await file.arrayBuffer())}catch(e){setUpInfo('Could not read that file.','bad');return}
+  if(!isGlb(bytes)){setUpInfo('That does not look like a .glb model (a binary glTF). Export it as <b>glTF Binary (.glb)</b>.','bad');return}
+  upBytes=bytes;upName=file.name;
+  const v=sizeVerdict(bytes.length);
+  if(v==='warn'){setUpInfo(esc(file.name)+' is '+mbText(bytes.length)+'. That is large: it will load slowly on phones and may fail on older ones. Shrinking it first is better.','warn');$('u-go').textContent='Upload anyway'}
+  else setUpInfo(esc(file.name)+' · '+mbText(bytes.length)+' · looks like a valid .glb.','ok');
+  const t=$('u-title');if(!t.value.trim()||t.value===autoTitle){autoTitle=titleFromFileName(file.name);t.value=autoTitle}
+  $('u-go').disabled=false;
+}
+async function doUpload(){
+  if(!upBytes){setUp('Choose a .glb file first.','bad');return}
+  const title=$('u-title').value.trim();if(!title){setUp('Give the model a title.','bad');return}
+  const c=connection();if(c.err){setUp(esc(c.err),'bad');return}
+  const path='models/'+modelFileName(upName),b=$('u-go'),label=b.textContent;
+  b.disabled=true;setUp('Checking…');
+  try{
+    const done=!!(upDone&&upDone.path===path&&upDone.size===upBytes.length);   // file already uploaded by an earlier tap that failed later
+    const sha=done?null:await fileShaOnGitHub(c.o,path);
+    if(sha&&upSure!==path){   // a file with this name exists: ask before replacing it
+      upSure=path;b.disabled=false;b.textContent='Replace it';clearTimeout(upTimer);
+      upTimer=setTimeout(()=>{upSure=null;b.textContent=label},8000);
+      setUp('<b>'+esc(path)+'</b> is already in the repository. Tap <b>Replace it</b> to overwrite that file, or choose a different file name.','warn');return;
+    }
+    clearTimeout(upTimer);
+    const same=cfg.exhibits.find(e=>e.model===path);   // already has an entry: just replace the file
+    if(!done){
+      setUp('Uploading '+mbText(upBytes.length)+'… keep this page open.');
+      await uploadFileToGitHub(c.o,path,upBytes,sha,'Gallery maker: '+(sha?'replaced ':'added ')+path);
+      upDone={path,size:upBytes.length};
+    }
+    let newId=null;
+    if(!same){
+      setUp('Adding it to exhibits.json…');
+      cfg=await saveToGitHub(Object.assign(c.o,{mutate:cur=>{const r=addExhibit(cur,{title,description:$('u-desc').value.trim(),model:path});newId=r.id;return r.out},message:'Gallery maker: added model '+title}),null);
+    }
+    renderModels();
+    setUp(same?'Replaced the file for “'+esc(same.title||same.id)+'”. GitHub Pages takes a few minutes to publish it.':
+      '“'+esc(title)+'” is added as <b>unlisted</b>. GitHub Pages takes a few minutes to publish the file; after that it appears in the camera list. Set its size there with <b>Make default</b>, then tap <b>Make public</b> above.','ok');
+    $('u-file').value='';upBytes=null;upDone=null;upSure=null;autoTitle='';$('u-title').value='';$('u-desc').value='';setUpInfo('');b.textContent='Upload model';b.disabled=true;
+  }catch(e){
+    b.disabled=false;b.textContent=label;
+    setUp(esc(e&&e.message?e.message:e)+(upDone?' The file itself is uploaded; tap the button again to finish adding it.':''),'bad');
+  }
 }
 
 let delTimer=null;

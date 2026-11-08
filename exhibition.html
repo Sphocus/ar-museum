@@ -51,23 +51,26 @@ function getExhibitions(c){
   return [];
 }
 
+let hintTimer=null;
+// Show a message at the top. With ms it fades after that long so it does not block the view; without, it stays until replaced.
+function say(t,ms){hint.textContent=t;hint.style.display='block';clearTimeout(hintTimer);if(ms)hintTimer=setTimeout(()=>{hint.style.display='none'},ms)}
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault());
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
 document.getElementById('e-centre').onclick=()=>{
-  if(!cur||!cur.placed||!cur.cam){hint.textContent='Place the exhibition first (aim at the floor and tap).';return}
+  if(!cur||!cur.placed||!cur.cam){say('Place the exhibition first (aim at the floor and tap).');return}
   // Some exhibitions (a real, marked space) only allow re-centring near the start spot: otherwise send the visitor back to it.
   if(exh&&exh.recentreAtStart){
     const d=Math.hypot(cur.cam.x-cur.base.ox,cur.cam.z-cur.base.oz);
-    if(d>RETURN_DIST){cur.showStart();hint.textContent='You are about '+d.toFixed(1)+' m from the start spot. Walk back to the blue circle and face the way the arrow points, then tap Re-centre.';return}
+    if(d>RETURN_DIST){cur.showStart();say('You are about '+d.toFixed(1)+' m from the start spot. Walk back to the blue circle and face the way the arrow points, then tap Re-centre.',10000);return}
   }
   // Only accept the tap when the phone is held up and looking out: within about 60 degrees of level (looking up or down).
   const f=cur.fwd,l=Math.hypot(f.x,f.z);
-  if(l<MIN_LEVEL){hint.textContent='Raise your phone a little and look ahead, the way the exhibition should open, then tap Re-centre.';return}
+  if(l<MIN_LEVEL){say('Raise your phone a little and look ahead, the way the exhibition should open, then tap Re-centre.',7000);return}
   cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
   cur.layoutAll();cur.markerUntil=0;
-  hint.textContent='Re-centred: the start spot is now where you stand, opening the way you face.';
+  say('Re-centred: the start spot is now where you stand, opening the way you face.',6000);
 };
 const RETURN_DIST=2;   // metres from the start spot beyond which Re-centre asks the visitor to walk back (only for exhibitions with recentreAtStart)
 const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by up to 60 degrees when tapping Re-centre (a normal 30-45 degree placement tilt is fine). 0.87 = 30 degrees (stricter), 0.3 = 72 degrees (forgiving).
@@ -133,7 +136,7 @@ async function start(btn){
       const hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
-      if(len<0.4){hint.textContent='Aim a little further ahead (about 2 m), then tap.';return}
+      if(len<0.4){say('Aim a little further ahead (about 2 m), then tap.');return}
       fx/=len;fz/=len;
       const th=Math.atan2(-fx,-fz);
       state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
@@ -146,10 +149,10 @@ async function start(btn){
       }
       state.layoutAll();
       state.placed=true;
-      hint.textContent='Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.';
+      say('Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
     });
 
-    ui.style.display='block';hint.textContent=START_HINT;
+    ui.style.display='block';say(START_HINT);
     const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
     state.session=session;
     renderer.xr.setReferenceSpaceType('local');

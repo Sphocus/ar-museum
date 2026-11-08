@@ -329,7 +329,13 @@ async function doCopy(){
 
 /* ---------------- camera screen ---------------- */
 const ui=$('xr-ui'),hintEl=$('hint');
-const hint=t=>{if(hintEl.textContent!==t)hintEl.textContent=t};
+let hintTimer=null,restoreHint=null;   // restoreHint: when a short message fades during a step that needs instructions, bring the instructions back
+// Show a message at the top. With ms it fades after that long (so it does not block the view); without, it stays until replaced.
+const hint=(t,ms,force)=>{
+  if(hintEl.textContent===t&&!force)return;
+  hintEl.textContent=t;hintEl.style.display='block';clearTimeout(hintTimer);
+  if(ms)hintTimer=setTimeout(()=>{if(restoreHint&&restoreHint())return;hintEl.style.display='none'},ms);
+};
 ['panel','list','hint'].forEach(id=>$(id).addEventListener('beforexrselect',e=>e.preventDefault()));
 function hold(btn,fn){const nb=btn.cloneNode(true);btn.replaceWith(nb);btn=nb;   // fresh button each camera session, so handlers never double up
   let t,iv;const stop=()=>{clearTimeout(t);clearInterval(iv)};
@@ -372,11 +378,13 @@ async function start(btn){
 
     const st={mode:'start',base:null,items:[],sel:null,adding:null,moving:false,busy:false,cam:new THREE.Vector3(),first:true,loaded:false,hit:new THREE.Vector3(),hitT:-1e9};
     session=st;
+    restoreHint=()=>{if(!session)return false;if(st.mode==='start'||st.adding||st.moving){setHint();return true}return false};
     const items=st.items;
 
     function place(it){   // set the 3D object from its layout entry
       const p=placeAt(st.base,it.L,it.ex,it.minY);
       it.o.scale.setScalar(p.sc);it.o.position.set(p.x,p.y,p.z);it.o.rotation.y=p.ry;
+      const fs=new THREE.Box3().setFromObject(it.o).getSize(new THREE.Vector3());it.rad=Math.max(fs.x,fs.z)/2*0.9;   // rough footprint radius, used for the room check
       if(it===st.sel)updateRing();
     }
     function buildRoom(){   // the room outline on the floor, from the start spot
@@ -390,7 +398,7 @@ async function start(btn){
         m.position.set((a.x+e.x)/2,st.base.oy+0.015,(a.z+e.z)/2);m.rotation.y=Math.atan2(-(e.z-a.z),e.x-a.x);roomGroup.add(m);
       }
     }
-    const isOut=it=>{const r=roomRect(work.room);return !!r&&!insideRoom(r,+it.L.x||0,+it.L.z||0)};
+    const isOut=it=>{const r=roomRect(work.room);return !!r&&!insideRoom(r,+it.L.x||0,+it.L.z||0,-(it.rad||0))};   // outside if any part of the footprint crosses the outline
     function updateRing(){
       const it=st.sel;if(!it){selRing.visible=false;return}
       const bb=new THREE.Box3().setFromObject(it.o),s=bb.getSize(new THREE.Vector3());
@@ -410,9 +418,9 @@ async function start(btn){
       if(st.busy)return hint('Loading…');
       if(st.adding)return hint('Aim at the floor (or a table) where “'+(st.adding.title||st.adding.id)+'” should go, then tap.');
       if(st.moving&&st.sel)return hint('Aim at where “'+(st.sel.ex.title||st.sel.ex.id)+'” should go, then tap.');
-      if(st.sel)return hint('Adjusting “'+(st.sel.ex.title||st.sel.ex.id)+'”.'+(isOut(st.sel)?' It is outside the room outline.':''));
+      if(st.sel)return hint('Adjusting “'+(st.sel.ex.title||st.sel.ex.id)+'”.'+(isOut(st.sel)?' It is outside the room outline.':''),8000);
       const out=items.filter(isOut).length;
-      hint(items.length?'Tap a model to adjust it, or tap Add model. ('+items.length+' placed'+(out?', '+out+' outside the room outline':'')+')':'Tap Add model to put your first model in the room.');
+      hint(items.length?'Tap a model to adjust it, or tap Add model. ('+items.length+' placed'+(out?', '+out+' outside the room outline':'')+')':'Tap Add model to put your first model in the room.',8000);
     }
     function refresh(){
       const it=st.sel;$('sel').style.display=it?'block':'none';
@@ -449,7 +457,7 @@ async function start(btn){
       catch(e){st.busy=false;hint('Could not copy: '+(e.message||e))}
     };
     $('b-add').onclick=()=>{
-      if(st.mode==='start'){hint('Set the start spot first: aim at the floor and tap.');return}
+      if(st.mode==='start'){hint('Set the start spot first: aim at the floor and tap.',6000,true);return}
       const l=$('litems');
       l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
       l.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.adding=byId.get(b.dataset.id);st.moving=false;st.sel=null;updateRing();$('list').style.display='none';$('panel').style.display='block';refresh()});
@@ -467,11 +475,11 @@ async function start(btn){
       if(st.busy)return;
       const hasHit=(performance.now()-st.hitT)<1500,hit=st.hit;
       if(st.mode==='start'||st.adding||st.moving){
-        if(!hasHit){hint('Tap received, but no floor found yet. Move the phone slowly over the floor until the ring stays steady, then tap.');return}
+        if(!hasHit){hint('Tap received, but no floor found yet. Move the phone slowly over the floor until the ring stays steady, then tap.',7000,true);return}
       }
       if(st.mode==='start'){
         const cam=st.cam;let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
-        if(len<0.4){hint('Aim a little further ahead (about 2 m), then tap.');return}
+        if(len<0.4){hint('Aim a little further ahead (about 2 m), then tap.',7000,true);return}
         fx/=len;fz/=len;
         st.base={ox:cam.x,oy:hit.y,oz:cam.z,th:Math.atan2(-fx,-fz)};
         marker.position.set(cam.x,hit.y+0.01,cam.z);marker.rotation.y=st.base.th;marker.visible=true;buildRoom();
@@ -506,6 +514,7 @@ async function start(btn){
       select(found);
     }
 
+    hintEl.textContent='';hintEl.style.display='block';
     ui.style.display='block';$('list').style.display='none';$('panel').style.display='block';select(null);
     const xr=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
     renderer.xr.setReferenceSpaceType('local');
@@ -514,7 +523,7 @@ async function start(btn){
     xr.addEventListener('end',()=>{
       renderer.setAnimationLoop(null);ui.style.display='none';
       if(st.loaded)work.layout=items.map(entryFromItem);      // keep what was placed (never wipe a gallery that did not finish loading)
-      session=null;renderer.dispose();
+      session=null;restoreHint=null;renderer.dispose();
       btn.disabled=false;btn.textContent=label;
       showCount();setStatus('');
       document.getElementById('c-save').scrollIntoView({behavior:'smooth'});

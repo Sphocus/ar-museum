@@ -43,7 +43,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
   <div id="xr-hint">Move your phone slowly over the floor or a table…</div>
   <div id="xr-bar">
     <button id="x-small">Smaller</button><button id="x-big">Bigger</button>
-    <button id="x-rot">Rotate</button><button id="x-add">Add model</button><button id="x-del">Remove</button><button id="x-exit">Exit</button>
+    <button id="x-rot">Rotate</button><button id="x-desel" style="display:none">Deselect</button><button id="x-add">Add model</button><button id="x-del">Remove</button><button id="x-exit">Exit</button>
   </div>
   <div id="xr-list"><div class="lh"><span>Choose a model</span><button id="xl-cancel">Cancel</button></div><div id="xl-items"></div></div>
 </div>
@@ -105,6 +105,7 @@ document.getElementById('x-small').onclick=()=>cur&&cur.grow(1/1.2);
 document.getElementById('x-big').onclick=()=>cur&&cur.grow(1.2);
 document.getElementById('x-rot').onclick=()=>cur&&cur.rotate();
 document.getElementById('x-del').onclick=()=>cur&&cur.remove();
+document.getElementById('x-desel').onclick=()=>cur&&cur.deselect();
 document.getElementById('x-add').onclick=()=>cur&&cur.openList();
 document.getElementById('xl-cancel').onclick=()=>{document.getElementById('xr-list').style.display='none'};
 document.getElementById('x-exit').onclick=()=>{if(cur)cur.session.end()};
@@ -137,7 +138,9 @@ async function startAR(ex,btn){
     const sizeOf=async e=>{try{const r=await fetch(e.model,{method:'HEAD'});const n=+r.headers.get('content-length');return isFinite(n)?n:0}catch(err){return 0}};
     sizeOf(ex).then(n=>state.sizes.set(ex.id,n));
 
-    function buttons(){const b=document.getElementById('x-add');b.textContent='Add model ('+state.items.length+'/'+MAX_MODELS+')';b.disabled=state.busy||!state.items.length;document.getElementById('x-del').disabled=!state.sel}
+    function buttons(){const b=document.getElementById('x-add');b.textContent='Add model ('+state.items.length+'/'+MAX_MODELS+')';b.disabled=state.busy||!state.items.length;
+      ['x-small','x-big','x-rot','x-del'].forEach(id=>{document.getElementById(id).disabled=!state.sel});   // nothing selected: nothing for these to act on
+      const d=document.getElementById('x-desel');d.style.display=state.items.length>1?'':'none';d.disabled=!state.sel}
     function ring(){
       const it=state.sel;if(!it||state.items.length<2){selRing.visible=false;return}
       const bb=new THREE.Box3().setFromObject(it.obj),sz=bb.getSize(new THREE.Vector3());
@@ -160,6 +163,7 @@ async function startAR(ex,btn){
       }
       it.obj.position.copy(p);it.baseY=p.y;rest(it);ring();
     }
+    state.deselect=()=>{state.sel=null;ring();buttons();say('Nothing selected. Tap a model to select it.',5000)};
     state.grow=f=>{const it=state.sel;if(!it)return;it.obj.scale.multiplyScalar(f);rest(it);ring()};
     state.rotate=()=>{const it=state.sel;if(!it)return;it.spin+=Math.PI/4;it.obj.rotation.y+=Math.PI/4};
     state.remove=()=>{

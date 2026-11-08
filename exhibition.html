@@ -57,20 +57,26 @@ document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
 document.getElementById('e-centre').onclick=()=>{
   if(!cur||!cur.placed||!cur.cam){hint.textContent='Place the exhibition first (aim at the floor and tap).';return}
+  // Some exhibitions (a real, marked space) only allow re-centring near the start spot: otherwise send the visitor back to it.
+  if(exh&&exh.recentreAtStart){
+    const d=Math.hypot(cur.cam.x-cur.base.ox,cur.cam.z-cur.base.oz);
+    if(d>RETURN_DIST){cur.showStart();hint.textContent='You are about '+d.toFixed(1)+' m from the start spot. Walk back to the blue circle and face the way the arrow points, then tap Re-centre.';return}
+  }
   // Only accept the tap when the phone is held up and looking out: within about 60 degrees of level (looking up or down).
   const f=cur.fwd,l=Math.hypot(f.x,f.z);
   if(l<MIN_LEVEL){hint.textContent='Raise your phone a little and look ahead, the way the exhibition should open, then tap Re-centre.';return}
   cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
-  cur.layoutAll();
+  cur.layoutAll();cur.markerUntil=0;
   hint.textContent='Re-centred: the start spot is now where you stand, opening the way you face.';
 };
+const RETURN_DIST=2;   // metres from the start spot beyond which Re-centre asks the visitor to walk back (only for exhibitions with recentreAtStart)
 const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by up to 60 degrees when tapping Re-centre (a normal 30-45 degree placement tilt is fine). 0.87 = 30 degrees (stricter), 0.3 = 72 degrees (forgiving).
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
 function page(ok){
   const n=(exh.layout||[]).length,many=getExhibitions(cfg).length>1;
   app.innerHTML=`<h1>${esc(exh.name||'Exhibition')}</h1>
-  <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.</p>
+  <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.${exh.room&&exh.room.width>0&&exh.room.depth>0?' Needs a space of about '+(+exh.room.width)+' × '+(+exh.room.depth)+' m.':''}</p>
   <div class="card"><b>How it works</b><ol>
     <li>Stand on the marked start spot (or wherever you want the exhibition to begin).</li>
     <li>Tap the button below and allow the camera.</li>
@@ -104,9 +110,15 @@ async function start(btn){
     const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));
     reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
     const group=new THREE.Group();scene.add(group);
+    // start-spot marker: only shown for a few seconds when a visitor is asked to walk back to the start spot
+    const marker=new THREE.Group();marker.visible=false;
+    marker.add(new THREE.Mesh(new THREE.RingGeometry(0.16,0.2,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff,side:THREE.DoubleSide})));
+    const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.22,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));arrow.position.set(0,0.02,-0.34);marker.add(arrow);scene.add(marker);
     const state={group,placed:false,session:null,mixers:[],objs:[],base:null,fwd:new THREE.Vector3(),cam:null};cur=state;const clock=new THREE.Clock();
 
     // Position every exhibit from the stored start spot (base) and each exhibit's layout entry.
+    state.markerUntil=0;
+    state.showStart=()=>{marker.position.set(state.base.ox,state.base.oy+0.01,state.base.oz);marker.rotation.y=state.base.th;state.markerUntil=performance.now()+10000};
     state.layoutAll=()=>{
       const {ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
       for(const {o,L,ex,minY,sc} of state.objs){
@@ -155,6 +167,7 @@ async function start(btn){
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}
         else reticle.visible=false;
       }else if(state.placed)reticle.visible=false;
+      marker.visible=performance.now()<state.markerUntil;
       const dt=clock.getDelta();state.mixers.forEach(mx=>mx.update(dt));
       renderer.render(scene,camera);
     });

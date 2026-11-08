@@ -68,6 +68,18 @@ function skinnedBox(o){let has=false;o.traverse(c=>{if(c.isSkinnedMesh&&c.applyB
   })}catch(e){return null}
   return box.isEmpty()?null:box}
 const boxOf=(o,lbox)=>{if(lbox){o.updateMatrixWorld(true);return lbox.clone().applyMatrix4(o.matrixWorld)}return new THREE.Box3().setFromObject(o)};   // the model's box in the room, at its current size and position
+// Soft shadow under a model: a dark, feathered ellipse lying flat at the model's lowest point, so it looks planted instead of floating.
+let shadowTex=null;
+function shadowTexture(){if(shadowTex)return shadowTex;const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,'rgba(0,0,0,0.6)');r.addColorStop(0.45,'rgba(0,0,0,0.32)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,128,128);shadowTex=new THREE.CanvasTexture(c);return shadowTex}
+function makeShadow(){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:shadowTexture(),transparent:true,depthWrite:false}));m.renderOrder=-1;m.visible=false;return m}
+function setShadow(sh,box,floorY){   // box: the model's box in the room; floorY: height of its lowest point
+  const sx=box.max.x-box.min.x,sz=box.max.z-box.min.z;
+  if(!(sx>0&&sz>0&&isFinite(sx)&&isFinite(sz)&&isFinite(floorY))){sh.visible=false;return}
+  const w=Math.max(0.25,sx*1.35),d=Math.max(0.25,sz*1.35);
+  sh.scale.set(w,1,d);sh.position.set((box.min.x+box.max.x)/2,floorY+0.003,(box.min.z+box.max.z)/2);
+  sh.material.opacity=Math.max(0.35,Math.min(1,3/Math.max(w,d)));   // very large models get a fainter shadow
+  sh.visible=true}
 let cfg={exhibits:[]},xrOK=false;
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -161,9 +173,9 @@ async function startAR(ex,btn){
     function choose(it){state.sel=it;ring();buttons()}
     function addItem(e,m){
       const obj=SkeletonUtils.clone(m.template),b=lowestY(obj);
-      const it={ex:e,m,obj,lbox:skinnedBox(obj),minY:(e.ground===false||!isFinite(b))?0:b,spin:0,baseY:0,mixer:null};   // minY: lowest point at full size
+      const it={ex:e,m,obj,lbox:skinnedBox(obj),sh:makeShadow(),minY:(e.ground===false||!isFinite(b))?0:b,spin:0,baseY:0,mixer:null};   // minY: lowest point at full size
       if(m.clips.length){it.mixer=new THREE.AnimationMixer(obj);m.clips.forEach(c=>it.mixer.clipAction(c).play())}
-      obj.scale.setScalar(+e.scale||1);scene.add(obj);state.items.push(it);return it;
+      obj.scale.setScalar(+e.scale||1);scene.add(obj);scene.add(it.sh);state.items.push(it);return it;
     }
     function moveTo(it,p){
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
@@ -178,7 +190,7 @@ async function startAR(ex,btn){
     state.rotate=()=>{const it=state.sel;if(!it)return;it.spin+=Math.PI/4;it.obj.rotation.y+=Math.PI/4};
     state.remove=()=>{
       const it=state.sel;if(!it)return;
-      scene.remove(it.obj);state.items.splice(state.items.indexOf(it),1);
+      scene.remove(it.obj);scene.remove(it.sh);state.items.splice(state.items.indexOf(it),1);
       if(state.items.length){state.sel=state.items[state.items.length-1];say('Removed. '+state.items.length+' of '+MAX_MODELS+' models out.',5000)}
       else{state.sel=null;state.pending={ex:it.ex,m:it.m};say('Tap a surface to place the model.')}   // nothing left: the next tap puts it back, as Reset used to
       ring();buttons();
@@ -250,7 +262,7 @@ async function startAR(ex,btn){
           if(!state.items.length&&hint.textContent!==SURF)say(SURF);   // only touch the page text when it actually changes (writing it every frame makes the AR overlay stutter)
         }else{reticle.visible=false;if(!state.items.length&&hint.textContent!==MOVE)say(MOVE)}
       }
-      const dt=clock.getDelta();state.items.forEach(i=>{if(i.mixer)i.mixer.update(dt)});
+      const dt=clock.getDelta();state.items.forEach(i=>{if(i.mixer)i.mixer.update(dt);setShadow(i.sh,boxOf(i.obj,i.lbox),i.obj.position.y+(i.minY||0)*i.obj.scale.y)});
       renderer.render(scene,camera);
     });
   }catch(e){

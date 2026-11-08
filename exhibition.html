@@ -46,6 +46,28 @@ const solid=(o,ex)=>{if(ex.solid)o.traverse(c=>{if(c.isMesh)[].concat(c.material
 function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
   try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
   if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
+// Box of a model in its own space, measured on the real posed vertices of its skinned (animated) parts. Returns null for models with none.
+// Three.js's built-in Box3 can be far too big for skinned models that are scaled (e.g. Bender at scale 2), so those are measured here.
+function skinnedBox(o){let has=false;o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform)has=true});if(!has)return null;
+  o.updateMatrixWorld(true);const box=new THREE.Box3(),v=new THREE.Vector3(),inv=o.matrixWorld.clone().invert();
+  try{o.traverse(c=>{
+    if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);box.expandByPoint(v)}}
+    else if(c.isMesh)box.union(new THREE.Box3().setFromObject(c).applyMatrix4(inv));
+  })}catch(e){return null}
+  return box.isEmpty()?null:box}
+const boxOf=(o,lbox)=>{if(lbox){o.updateMatrixWorld(true);return lbox.clone().applyMatrix4(o.matrixWorld)}return new THREE.Box3().setFromObject(o)};   // the model's box in the room, at its current size and position
+// Soft shadow under a model: a dark, feathered ellipse lying flat at the model's lowest point, so it looks planted instead of floating.
+let shadowTex=null;
+function shadowTexture(){if(shadowTex)return shadowTex;const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),r=g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,'rgba(0,0,0,0.6)');r.addColorStop(0.45,'rgba(0,0,0,0.32)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,128,128);shadowTex=new THREE.CanvasTexture(c);return shadowTex}
+function makeShadow(){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:shadowTexture(),transparent:true,depthWrite:false}));m.renderOrder=-1;m.visible=false;return m}
+function setShadow(sh,box,floorY){   // box: the model's box in the room; floorY: height of its lowest point
+  const sx=box.max.x-box.min.x,sz=box.max.z-box.min.z;
+  if(!(sx>0&&sz>0&&isFinite(sx)&&isFinite(sz)&&isFinite(floorY))){sh.visible=false;return}
+  const w=Math.max(0.25,sx*1.35),d=Math.max(0.25,sz*1.35);
+  sh.scale.set(w,1,d);sh.position.set((box.min.x+box.max.x)/2,floorY+0.003,(box.min.z+box.max.z)/2);
+  sh.material.opacity=Math.max(0.35,Math.min(1,3/Math.max(w,d)));   // very large models get a fainter shadow
+  sh.visible=true}
 const app=document.getElementById('app'),ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let cfg=null,cur=null,exh=null,isDraft=false;   // isDraft: a test run of a gallery that is not saved yet (from the gallery maker)   // exh = the exhibition being shown (name, description, layout)
@@ -139,10 +161,11 @@ async function start(btn){
     state.showStart=()=>{marker.position.set(state.base.ox,state.base.oy+0.01,state.base.oz);marker.rotation.y=state.base.th;state.markerUntil=performance.now()+10000};
     state.layoutAll=()=>{
       const {ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
-      for(const {o,L,ex,minY,sc} of state.objs){
+      for(const {o,L,ex,minY,sc,sh,lbox} of state.objs){
         const x=+L.x||0,z=+L.z||0;
         o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
         o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
+        setShadow(sh,boxOf(o,lbox),oy+(+L.y||0));
       }
     };
     const controller=renderer.xr.getController(0);scene.add(controller);
@@ -170,7 +193,7 @@ async function start(btn){
         if(clips.length){const mx=new THREE.AnimationMixer(o);clips.forEach(c=>mx.clipAction(c).play());state.mixers.push(mx)}
         const bb=lowestY(o),minY=(ex.ground===false||!isFinite(bb))?0:bb;   // lowest point at full size
         const sc=(+ex.scale||1)*(+L.scale||1);o.scale.setScalar(sc);
-        state.objs.push({o,L,ex,minY,sc});group.add(o);
+        const sh=makeShadow();state.objs.push({o,L,ex,minY,sc,sh,lbox:skinnedBox(o)});group.add(o);group.add(sh);
       }
       state.layoutAll();
       state.placed=true;

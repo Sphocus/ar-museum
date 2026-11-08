@@ -117,7 +117,13 @@ labelBtn.onclick=()=>{if(!cur||!cur.placed)return;cur.labelsOn=!cur.labelsOn;cur
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
+const centreBtn=document.getElementById('e-centre');
+function moveBtn(on){centreBtn.textContent=on?'Cancel':'Move'}
 document.getElementById('e-centre').onclick=()=>{
+  if(cur&&cur.mini){
+    if(!cur.placed){say('Aim at a table or the floor and tap to place the miniature.');return}
+    cur.moving=!cur.moving;moveBtn(cur.moving);
+    say(cur.moving?'Aim at the new spot and tap.':'Moving cancelled.',5000);return}
   if(!cur||!cur.placed||!cur.cam){say('Place the exhibition first (aim at the floor and tap).');return}
   // Some exhibitions (a real, marked space) only allow re-centring near the start spot: otherwise send the visitor back to it.
   if(exh&&exh.recentreAtStart){
@@ -144,12 +150,13 @@ function page(ok){
     <li>Tap the button below and allow the camera.</li>
     <li>Aim at the floor about 2 metres ahead, the way the exhibition should open, and tap once.</li>
     <li>Walk around and look at everything.</li></ol></div>
-  ${ok?'<button class="go" id="go">Start exhibition</button>':'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
+  ${ok?'<button class="go" id="go">Start exhibition</button><button class="go" id="go-mini" style="margin-top:10px;background:transparent;border:2px solid var(--accent);color:var(--accent)">Tabletop view (miniature)</button><p class="muted">Not enough room? Tabletop view shrinks the whole exhibition to sit on a table.</p>':'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
   <p class="muted" style="margin-top:20px">${many?'<a href="exhibition.html">All exhibitions</a> · ':''}<a href="index.html">Preview mode: view single exhibits</a></p>`;
-  const b=document.getElementById('go');if(b)b.onclick=()=>start(b);
+  const b=document.getElementById('go');if(b)b.onclick=()=>start(b,false);
+  const bm=document.getElementById('go-mini');if(bm)bm.onclick=()=>start(bm,true);
 }
 
-async function start(btn){
+async function start(btn,mini){
   const label=btn.textContent;
   try{
     btn.disabled=true;
@@ -176,25 +183,26 @@ async function start(btn){
     const marker=new THREE.Group();marker.visible=false;
     marker.add(new THREE.Mesh(new THREE.RingGeometry(0.16,0.2,40).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff,side:THREE.DoubleSide})));
     const arrow=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.22,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));arrow.position.set(0,0.02,-0.34);marker.add(arrow);scene.add(marker);
-    const state={group,placed:false,session:null,mixers:[],objs:[],base:null,fwd:new THREE.Vector3(),cam:null};cur=state;const clock=new THREE.Clock();
+    const state={group,placed:false,session:null,mixers:[],objs:[],base:null,fwd:new THREE.Vector3(),cam:null};cur=state;state.mini=!!mini;state.k=1;centreBtn.textContent=mini?'Move':'Re-centre';const clock=new THREE.Clock();
 
     // Position every exhibit from the stored start spot (base) and each exhibit's layout entry.
     state.markerUntil=0;
     state.showStart=()=>{marker.position.set(state.base.ox,state.base.oy+0.01,state.base.oz);marker.rotation.y=state.base.th;state.markerUntil=performance.now()+10000};
     state.layoutAll=()=>{
-      const {ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
+      const k=state.k||1,{ox,oy,oz,th}=state.base,fx=-Math.sin(th),fz=-Math.cos(th),rx=Math.cos(th),rz=-Math.sin(th);   // forward and right directions on the floor
       for(const {o,L,ex,minY,sc,sh,lbox,lb} of state.objs){
-        const x=+L.x||0,z=+L.z||0;
-        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)-minY*sc,oz+rz*x+fz*z);   // rest the lowest point on the floor
+        const x=(+L.x||0)*k-(state.cx||0)*k,z=(+L.z||0)*k-(state.cz||0)*k;   // miniature: layout centre sits at the tapped spot
+        o.scale.setScalar(sc*k);
+        o.position.set(ox+rx*x+fx*z,oy+(+L.y||0)*k-minY*sc*k,oz+rz*x+fz*z);   // rest the lowest point on the floor
         o.rotation.y=th+((+ex.rotation||0)+(+L.rotation||0))*Math.PI/180;   // model's own front fix + this layout spot's extra turn
-        const bx=boxOf(o,lbox);setShadow(sh,bx,oy+(+L.y||0));
-        lb.position.set((bx.min.x+bx.max.x)/2,bx.max.y+0.18,(bx.min.z+bx.max.z)/2);   // just above the top of the model
+        const bx=boxOf(o,lbox);setShadow(sh,bx,oy+(+L.y||0)*k);
+        lb.position.set((bx.min.x+bx.max.x)/2,bx.max.y+(0.03+0.15*k),(bx.min.z+bx.max.z)/2);   // just above the top of the model
       }
     };
     const controller=renderer.xr.getController(0);scene.add(controller);
     const ray=new THREE.Raycaster();
     controller.addEventListener('select',()=>{
-      if(state.placed){   // after placing: tap a model to read about it; tap empty space to close the card
+      if(state.placed&&!state.moving){   // after placing: tap a model to read about it; tap empty space to close the card
         const m=new THREE.Matrix4().extractRotation(controller.matrixWorld);
         ray.ray.origin.setFromMatrixPosition(controller.matrixWorld);ray.ray.direction.set(0,0,-1).applyMatrix4(m);
         const hits=ray.intersectObjects(state.objs.map(i=>i.o),true);
@@ -204,13 +212,23 @@ async function start(btn){
         return;
       }
       if(!reticle.visible)return;
+      const wasMoving=state.moving;
       const hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
-      if(len<0.4){say('Aim a little further ahead (about 2 m), then tap.');return}
+      if(len<(mini?0.2:0.4)){say(mini?'Aim a little further away, at the table, then tap.':'Aim a little further ahead (about 2 m), then tap.');return}
       fx/=len;fz/=len;
       const th=Math.atan2(-fx,-fz);
-      state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
+      if(mini){   // base = the tapped spot on the table; the layout centre lands there, facing away from the visitor
+        state.base={ox:hit.x,oy:hit.y,oz:hit.z,th};state.moving=false;
+        if(wasMoving){state.layoutAll();moveBtn(false);say('Moved. Walk around it, or tap Move to put it somewhere else.',6000);return}
+      }else state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
+      if(mini){   // size of the layout (with a margin) decides how small to make it
+        const xs=items.map(i=>+i.L.x||0),zs=items.map(i=>+i.L.z||0);
+        const w=Math.max(...xs)-Math.min(...xs)+1.5,d=Math.max(...zs)-Math.min(...zs)+1.5;
+        state.k=Math.max(0.04,Math.min(0.3,0.9/Math.max(w,d)));
+        state.cx=(Math.max(...xs)+Math.min(...xs))/2;state.cz=(Math.max(...zs)+Math.min(...zs))/2;
+      }
       for(const {L,ex,g,clips} of items){
         const o=SkeletonUtils.clone(g);
         let mx=null;
@@ -221,10 +239,11 @@ async function start(btn){
       }
       state.layoutAll();
       state.placed=true;labelBtn.disabled=false;
+      if(mini){moveBtn(false);say('Miniature placed. Walk around it. Tap a model to read about it, or tap Move to put it somewhere else.',10000);return}
       say('Exhibition placed. Walk around, and tap a model to read about it. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
     });
 
-    ui.style.display='block';say(START_HINT);
+    ui.style.display='block';say(mini?'Aim at a table or the floor where the miniature should go, then tap.':START_HINT);
     const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
     state.session=session;
     renderer.xr.setReferenceSpaceType('local');
@@ -233,15 +252,15 @@ async function start(btn){
     const source=await session.requestHitTestSource({space:viewer});
     session.addEventListener('end',()=>{
       renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();labelBtn.disabled=true;labelBtn.classList.remove('on');cur=null;renderer.dispose();
-      btn.disabled=false;btn.textContent=label;
+      btn.disabled=false;btn.textContent=label;centreBtn.textContent='Re-centre';
     });
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w))}}
-      if(frame&&!state.placed){
+      if(frame&&(!state.placed||state.moving)){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}
         else reticle.visible=false;
-      }else if(state.placed)reticle.visible=false;
+      }else if(state.placed&&!state.moving)reticle.visible=false;
       marker.visible=performance.now()<state.markerUntil;
       const dt=clock.getDelta();state.mixers.forEach(mx=>mx.update(dt));
       renderer.render(scene,camera);

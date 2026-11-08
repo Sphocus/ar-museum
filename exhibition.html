@@ -21,6 +21,10 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 #xr-ui{display:none;position:fixed;inset:0;pointer-events:none;color:#fff;font-family:system-ui,sans-serif}
 #xr-hint{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;text-align:center;background:rgba(0,0,0,.65);padding:10px 14px;border-radius:12px}
 #xr-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;pointer-events:auto}
+#xr-info{display:none;position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-height:45vh;overflow:auto;background:rgba(0,0,0,.8);border-radius:14px;padding:14px 16px;pointer-events:auto}
+#xr-info b{display:block;font-size:17px;margin-bottom:4px;padding-right:56px}
+#xr-info p{margin:6px 0 0;font-size:14px;line-height:1.45;color:#e8e8e8;overflow-wrap:anywhere;white-space:pre-wrap}
+#xr-info button{position:absolute;top:8px;right:8px;font:600 14px system-ui;padding:8px 14px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff}
 #xr-bar button{font:600 15px system-ui;padding:12px 18px;border:0;border-radius:999px;background:rgba(0,0,0,.7);color:#fff}
 </style>
 </head>
@@ -28,6 +32,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 <main id="app"><h1>Exhibition</h1><p class="muted">Loading…</p></main>
 <div id="xr-ui">
   <div id="xr-hint"></div>
+  <div id="xr-info"><button id="i-close">Close</button><b id="i-title"></b><p id="i-desc"></p></div>
   <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-exit">Exit</button></div>
 </div>
 <script type="module">
@@ -55,6 +60,16 @@ let hintTimer=null;
 // Show a message at the top. With ms it fades after that long so it does not block the view; without, it stays until replaced.
 function say(t,ms){hint.textContent=t;hint.style.display='block';clearTimeout(hintTimer);if(ms)hintTimer=setTimeout(()=>{hint.style.display='none'},ms)}
 document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault());
+const infoBox=document.getElementById('xr-info');
+infoBox.addEventListener('beforexrselect',e=>e.preventDefault());
+// The info card for a model the visitor tapped: its title, then its description (credit and licence).
+function showInfo(ex){
+  document.getElementById('i-title').textContent=ex.title||ex.id;
+  const d=document.getElementById('i-desc');d.textContent=ex.description||'';d.style.display=ex.description?'block':'none';
+  infoBox.scrollTop=0;infoBox.style.display='block';
+}
+function hideInfo(){infoBox.style.display='none'}
+document.getElementById('i-close').onclick=hideInfo;
 document.getElementById('e-exit').onclick=()=>{if(cur)cur.session.end()};
 // Re-centre: keep everything on screen and move the whole exhibition so its start spot is where you stand now,
 // opening in the direction you are facing. No aiming needed; floor height stays as it was.
@@ -131,8 +146,18 @@ async function start(btn){
       }
     };
     const controller=renderer.xr.getController(0);scene.add(controller);
+    const ray=new THREE.Raycaster();
     controller.addEventListener('select',()=>{
-      if(state.placed||!reticle.visible)return;
+      if(state.placed){   // after placing: tap a model to read about it; tap empty space to close the card
+        const m=new THREE.Matrix4().extractRotation(controller.matrixWorld);
+        ray.ray.origin.setFromMatrixPosition(controller.matrixWorld);ray.ray.direction.set(0,0,-1).applyMatrix4(m);
+        const hits=ray.intersectObjects(state.objs.map(i=>i.o),true);
+        let found=null;
+        if(hits.length){let o=hits[0].object;while(o&&!found){found=state.objs.find(i=>i.o===o)||null;o=o.parent}}
+        if(found)showInfo(found.ex);else hideInfo();
+        return;
+      }
+      if(!reticle.visible)return;
       const hit=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
       let fx=hit.x-cam.x,fz=hit.z-cam.z;const len=Math.hypot(fx,fz);
@@ -149,7 +174,7 @@ async function start(btn){
       }
       state.layoutAll();
       state.placed=true;
-      say('Exhibition placed. Walk around. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
+      say('Exhibition placed. Walk around, and tap a model to read about it. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
     });
 
     ui.style.display='block';say(START_HINT);
@@ -160,7 +185,7 @@ async function start(btn){
     const viewer=await session.requestReferenceSpace('viewer');
     const source=await session.requestHitTestSource({space:viewer});
     session.addEventListener('end',()=>{
-      renderer.setAnimationLoop(null);ui.style.display='none';cur=null;renderer.dispose();
+      renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();cur=null;renderer.dispose();
       btn.disabled=false;btn.textContent=label;
     });
     renderer.setAnimationLoop((t,frame)=>{

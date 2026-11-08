@@ -37,6 +37,7 @@ ol{padding-left:20px;margin:8px 0}li{margin:5px 0}
 .mrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mrow i{font-style:normal;font-size:.8rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
 .mrow i.unl{border-color:#c98a00;color:#c98a00}
+.mrow button.dl{border-color:#ff8a8a;color:#ff8a8a;padding:8px 10px}
 .mrow button{flex:none;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:8px 14px;font:600 .85rem system-ui}
 a{color:var(--accent)}
 code{font-size:.85em;word-break:break-all}
@@ -246,6 +247,17 @@ function addExhibit(cur,f){
   out.exhibits.push({id,title:f.title,description:f.description||'',model:f.model,scale:1,rotation:0,unlisted:true});
   return {out,id};
 }
+// Take one model out of a copy of exhibits.json. Refuses if a gallery still uses it.
+function removeExhibit(cur,id){
+  const out=JSON.parse(JSON.stringify(cur));const used=galleriesUsing(out,id);
+  if(used.length)throw new Error('It is still placed in: '+used.map(g=>g.name).join(', ')+'. Remove it from those galleries first.');
+  if(!(out.exhibits||[]).some(x=>x.id===id))throw new Error('That model is no longer in exhibits.json.');
+  out.exhibits=out.exhibits.filter(x=>x.id!==id);return out;
+}
+async function deleteFileOnGitHub(o,p,sha,message,f){
+  f=f||fetch;const r=await f(ghFileUrl(o,p),{method:'DELETE',headers:Object.assign({'Content-Type':'application/json'},ghHeaders(o)),body:JSON.stringify({message:message||('Gallery maker: deleted '+p),sha,branch:o.branch||'main'})});
+  if(!r.ok&&r.status!==404)throw await ghExplain(r,'Deleting the file');
+}
 function bytesToB64(bytes){let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
 function ghHeaders(o){return {Authorization:'Bearer '+o.token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}}
 async function ghExplain(r,what){
@@ -400,8 +412,8 @@ function renderModels(){
   const all=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true}));
   const un=all.filter(e=>e.unlisted).length;
   $('m-sum').textContent=all.length+' models'+(un?', '+un+' unlisted (hidden from the public gallery)':', all public')+'.';
-  $('m-list').innerHTML=all.map(e=>`<div class="mrow"><span>${esc(e.title||e.id)}</span><i class="${e.unlisted?'unl':''}">${e.unlisted?'Unlisted':'Public'}</i><button data-id="${esc(e.id)}">${e.unlisted?'Make public':'Hide'}</button></div>`).join('');
-  $('m-list').querySelectorAll('button').forEach(b=>b.onclick=()=>toggleListed(b));
+  $('m-list').innerHTML=all.map(e=>`<div class="mrow"><span>${esc(e.title||e.id)}</span><i class="${e.unlisted?'unl':''}">${e.unlisted?'Unlisted':'Public'}</i><button data-id="${esc(e.id)}">${e.unlisted?'Make public':'Hide'}</button><button class="dl" data-id="${esc(e.id)}">Delete</button></div>`).join('');
+  $('m-list').querySelectorAll('button').forEach(b=>b.onclick=()=>b.classList.contains('dl')?deleteModel(b):toggleListed(b));
 }
 async function toggleListed(b){
   const e=cfg.exhibits.find(x=>x.id===b.dataset.id);if(!e)return;
@@ -417,6 +429,30 @@ async function toggleListed(b){
     cfg=await saveToGitHub(Object.assign(c.o,{mutate:cur=>setExhibitFields(cur,e.id,{unlisted:makePublic?null:true}),message:'Gallery maker: '+(makePublic?'made public: ':'hidden: ')+(e.title||e.id)}),null);
     renderModels();
     setMStatus('“'+esc(e.title||e.id)+'” is now '+(makePublic?'public':'unlisted')+'. GitHub Pages takes a few minutes to publish it.','ok');
+  }catch(err){b.disabled=false;setMStatus(esc(err&&err.message?err.message:err),'bad')}
+}
+
+let mdTimer=null;
+async function deleteModel(b){
+  const e=cfg.exhibits.find(x=>x.id===b.dataset.id);if(!e)return;
+  const used=galleriesUsing(cfg,e.id);
+  if(used.length){setMStatus('“'+esc(e.title||e.id)+'” is still placed in: '+esc(used.map(g=>g.name).join(', '))+'. Remove it from those galleries first (open the gallery, select the model, Delete, save).','bad');return}
+  if(!b.dataset.sure){   // first tap only asks
+    b.dataset.sure='1';b.textContent='Tap again to delete for good';clearTimeout(mdTimer);
+    mdTimer=setTimeout(()=>{delete b.dataset.sure;b.textContent='Delete'},6000);return;
+  }
+  clearTimeout(mdTimer);
+  const c=connection();if(c.err){setMStatus(esc(c.err),'bad');return}
+  b.disabled=true;setMStatus('Deleting…');
+  try{
+    cfg=await saveToGitHub(Object.assign(c.o,{mutate:cur=>removeExhibit(cur,e.id),message:'Gallery maker: deleted model '+(e.title||e.id)}),null);
+    renderModels();
+    let note='';const file=e.model;
+    if(file&&!cfg.exhibits.some(x=>x.model===file)){   // delete the file too, unless another model uses it
+      try{const sha=await fileShaOnGitHub(c.o,file);if(sha)await deleteFileOnGitHub(c.o,file,sha,'Gallery maker: deleted '+file);note=' The file '+esc(file)+' was deleted too.'}
+      catch(err){note=' The entry is gone, but the file '+esc(file)+' could not be deleted ('+esc(err&&err.message?err.message:err)+'). Delete it in GitHub if you want it gone.'}
+    }else if(file)note=' The file was kept because another model uses it.';
+    setMStatus('“'+esc(e.title||e.id)+'” was deleted.'+note+' GitHub Pages takes a few minutes to update. (GitHub keeps the history, so an old version can still be restored from there.)','ok');
   }catch(err){b.disabled=false;setMStatus(esc(err&&err.message?err.message:err),'bad')}
 }
 

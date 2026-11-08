@@ -58,6 +58,16 @@ const solid=(o,ex)=>{if(ex.solid)o.traverse(c=>{if(c.isMesh)[].concat(c.material
 function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
   try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
   if(!isFinite(m))m=new THREE.Box3().setFromObject(o).min.y;return m}
+// Box of a model in its own space, measured on the real posed vertices of its skinned (animated) parts. Returns null for models with none.
+// Three.js's built-in Box3 can be far too big for skinned models that are scaled (e.g. Bender at scale 2), so those are measured here.
+function skinnedBox(o){let has=false;o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform)has=true});if(!has)return null;
+  o.updateMatrixWorld(true);const box=new THREE.Box3(),v=new THREE.Vector3(),inv=o.matrixWorld.clone().invert();
+  try{o.traverse(c=>{
+    if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld).applyMatrix4(inv);box.expandByPoint(v)}}
+    else if(c.isMesh)box.union(new THREE.Box3().setFromObject(c).applyMatrix4(inv));
+  })}catch(e){return null}
+  return box.isEmpty()?null:box}
+const boxOf=(o,lbox)=>{if(lbox){o.updateMatrixWorld(true);return lbox.clone().applyMatrix4(o.matrixWorld)}return new THREE.Box3().setFromObject(o)};   // the model's box in the room, at its current size and position
 let cfg={exhibits:[]},xrOK=false;
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -143,7 +153,7 @@ async function startAR(ex,btn){
       const d=document.getElementById('x-desel');d.style.display=state.items.length>1?'':'none';d.disabled=!state.sel}
     function ring(){
       const it=state.sel;if(!it||state.items.length<2){selRing.visible=false;return}
-      const bb=new THREE.Box3().setFromObject(it.obj),sz=bb.getSize(new THREE.Vector3());
+      const bb=boxOf(it.obj,it.lbox),sz=bb.getSize(new THREE.Vector3());
       selRing.scale.setScalar(Math.min(3,Math.max(0.15,Math.max(sz.x,sz.z)/2*0.9+0.05)));
       selRing.position.set(it.obj.position.x,it.baseY+0.01,it.obj.position.z);selRing.visible=true;
     }
@@ -151,7 +161,7 @@ async function startAR(ex,btn){
     function choose(it){state.sel=it;ring();buttons()}
     function addItem(e,m){
       const obj=SkeletonUtils.clone(m.template),b=lowestY(obj);
-      const it={ex:e,m,obj,minY:(e.ground===false||!isFinite(b))?0:b,spin:0,baseY:0,mixer:null};   // minY: lowest point at full size
+      const it={ex:e,m,obj,lbox:skinnedBox(obj),minY:(e.ground===false||!isFinite(b))?0:b,spin:0,baseY:0,mixer:null};   // minY: lowest point at full size
       if(m.clips.length){it.mixer=new THREE.AnimationMixer(obj);m.clips.forEach(c=>it.mixer.clipAction(c).play())}
       obj.scale.setScalar(+e.scale||1);scene.add(obj);state.items.push(it);return it;
     }

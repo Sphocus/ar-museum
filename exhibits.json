@@ -229,43 +229,78 @@
       "ground": false
     }
   ],
-  "exhibitionName": "My Exhibition",
-  "layout": [
+  "exhibitions": [
     {
-      "exhibit": "skull",
-      "x": -0.8,
-      "z": 1.8,
-      "rotation": 0
+      "id": "main",
+      "name": "My Exhibition",
+      "layout": [
+        {
+          "exhibit": "skull",
+          "x": -0.8,
+          "z": 1.8,
+          "rotation": 0
+        },
+        {
+          "exhibit": "catwoman",
+          "x": 0.8,
+          "z": 1.8,
+          "rotation": 0
+        },
+        {
+          "exhibit": "raptor",
+          "x": -0.8,
+          "z": 3.8,
+          "rotation": 0
+        },
+        {
+          "exhibit": "bender",
+          "x": 0.8,
+          "z": 3.8,
+          "rotation": 0
+        },
+        {
+          "exhibit": "dragon-girl",
+          "x": -0.8,
+          "z": 6,
+          "rotation": 0
+        },
+        {
+          "exhibit": "alien-queen",
+          "x": 1.2,
+          "z": 6,
+          "rotation": 0
+        }
+      ]
     },
     {
-      "exhibit": "catwoman",
-      "x": 0.8,
-      "z": 1.8,
-      "rotation": 0
-    },
-    {
-      "exhibit": "raptor",
-      "x": -0.8,
-      "z": 3.8,
-      "rotation": 0
-    },
-    {
-      "exhibit": "bender",
-      "x": 0.8,
-      "z": 3.8,
-      "rotation": 0
-    },
-    {
-      "exhibit": "dragon-girl",
-      "x": -0.8,
-      "z": 6.0,
-      "rotation": 0
-    },
-    {
-      "exhibit": "alien-queen",
-      "x": 1.2,
-      "z": 6.0,
-      "rotation": 0
+      "id": "first-test",
+      "name": "First test",
+      "layout": [
+        {
+          "exhibit": "cowgirl",
+          "x": -0.99,
+          "y": 0,
+          "z": 1.35,
+          "rotation": 70,
+          "scale": 1
+        },
+        {
+          "exhibit": "girl",
+          "x": 0.01,
+          "y": 0,
+          "z": 2,
+          "rotation": 6,
+          "scale": 1
+        },
+        {
+          "exhibit": "tank-top-woman",
+          "x": 0.78,
+          "y": 0,
+          "z": 0.87,
+          "rotation": -29,
+          "scale": 1
+        }
+      ]
     }
   ]
 }

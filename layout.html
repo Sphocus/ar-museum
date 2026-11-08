@@ -30,6 +30,11 @@ details{margin-top:12px;font-size:.92rem}summary{cursor:pointer;color:var(--acce
 ol{padding-left:20px;margin:8px 0}li{margin:5px 0}
 .status{margin-top:12px;white-space:pre-wrap;font-size:.95rem}
 .ok{color:#2e7d32}.bad{color:#c62828}
+.mrow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.mrow span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow i{font-style:normal;font-size:.8rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line)}
+.mrow i.unl{border-color:#c98a00;color:#c98a00}
+.mrow button{flex:none;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:8px 14px;font:600 .85rem system-ui}
 a{color:var(--accent)}
 code{font-size:.85em;word-break:break-all}
 
@@ -52,6 +57,11 @@ code{font-size:.85em;word-break:break-all}
 #list{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:62vh;display:none;flex-direction:column;background:rgba(0,0,0,.88);border-radius:16px;padding:8px}
 #list .lh{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font-weight:700}
 #list .lh button{border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:8px 14px}
+#dpanel{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));display:none;background:rgba(0,0,0,.88);border-radius:16px;padding:12px}
+#dpanel .row{display:flex;gap:6px;align-items:center;margin-top:8px}
+#dpanel button{flex:1;min-height:44px;border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:0 8px}
+#dpanel button.primary{background:#8c2f39}
+#d-title{font-weight:700;margin-bottom:6px}#d-body{font-size:14px;line-height:1.45;color:#ddd}
 #litems{overflow-y:auto;-webkit-overflow-scrolling:touch}
 #litems button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(255,255,255,.12);background:transparent;color:#fff;font:16px system-ui;padding:13px 8px}
 </style>
@@ -78,6 +88,7 @@ code{font-size:.85em;word-break:break-all}
       <p class="muted" style="margin:6px 0 0">Width goes left to right and depth goes ahead of you, as you face the way the gallery opens. The room outline shows on the floor once you set the start spot, and models outside it are flagged.</p>
     </div>
     <label class="chk"><input type="checkbox" id="g-ret"> Re-centre only works near the start spot</label>
+    <label class="chk"><input type="checkbox" id="g-unl"> Unlisted: left out of the public list, opens only from its link or QR code</label>
     <button class="go" id="go">Open camera and place models</button>
     <p class="muted" id="g-count"></p>
     <details><summary>How it works</summary><ol>
@@ -87,8 +98,8 @@ code{font-size:.85em;word-break:break-all}
       <li>Tap <b>Lock &amp; save</b>, then save the gallery below.</li></ol></details>
   </div>
 
-  <div class="card" id="c-save" hidden>
-    <b>2. Save the gallery</b>
+  <div class="card" id="c-save">
+    <b>2. Save to GitHub</b>
     <p class="muted" id="s-sum"></p>
     <label>Repository (owner/name)
       <input type="text" id="s-repo" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
@@ -101,11 +112,21 @@ code{font-size:.85em;word-break:break-all}
       <li>Name it, choose an expiry, and under <b>Repository access</b> pick <b>Only select repositories</b> and choose your museum repository.</li>
       <li>Under <b>Permissions</b>, <b>Repository permissions</b>, set <b>Contents</b> to <b>Read and write</b>. Generate it and paste it above.</li>
       <li>Only you can save while the token stays private. Delete it in GitHub any time to switch saving off.</li></ol></details>
+    <div id="save-btns">
     <button class="go" id="save">Save gallery to GitHub</button>
     <button class="alt" id="copy">Copy the gallery text instead</button>
     <button class="alt" id="again">Open camera again to keep editing</button>
     <button class="alt" id="delgal" hidden style="color:#ff8a8a">Delete this gallery…</button>
+    </div>
     <div class="status" id="s-status"></div>
+  </div>
+
+  <div class="card" id="c-models" hidden>
+    <b>3. Models</b>
+    <p class="muted" id="m-sum"></p>
+    <details><summary>All models: hide or make public</summary><div id="m-list"></div></details>
+    <p class="muted">A new model: add its entry to exhibits.json with <code>"unlisted": true</code>. It then shows here and in the camera list, but not in the public gallery. Set its default size and direction in the camera (<b>Make default</b>), then tap <b>Make public</b> when it is ready.</p>
+    <div class="status" id="m-status"></div>
   </div>
   <p class="muted" style="margin-top:24px"><a href="index.html">Back to the museum</a></p>
 </main>
@@ -116,6 +137,11 @@ code{font-size:.85em;word-break:break-all}
     <div class="lh"><span>Choose a model</span><button id="l-cancel">Cancel</button></div>
     <div id="litems"></div>
   </div>
+  <div id="dpanel" class="hit">
+    <div id="d-title"></div><div id="d-body"></div>
+    <div class="row"><button id="d-ground"></button></div>
+    <div class="row"><button id="d-cancel">Cancel</button><button id="d-save" class="primary">Save as default</button></div>
+  </div>
   <div id="panel" class="hit">
     <div id="sel" style="display:none">
       <div class="row"><span id="selname"></span><span id="selinfo"></span></div>
@@ -123,6 +149,7 @@ code{font-size:.85em;word-break:break-all}
       <div class="row"><label>Turn</label><button class="sm" id="r-dn">◀</button><input type="range" id="r-rng" min="-180" max="180" step="1"><button class="sm" id="r-up">▶</button></div>
       <div class="row"><label>Height</label><button class="sm" id="h-dn">▼</button><span class="val" id="h-val"></span><button class="sm" id="h-up">▲</button></div>
       <div class="row"><button id="b-move">Move</button><button id="b-copy">Copy</button><button id="b-del">Delete</button><button id="b-close">Close</button></div>
+      <div class="row"><button id="b-default">Make this the default for this model…</button></div>
     </div>
     <div class="row" id="here-row" style="display:none"><button id="b-here" class="primary" style="min-height:52px;font-size:16px">Set start spot here</button></div>
     <div class="row"><button id="b-add">Add model</button><button id="b-start">Start spot</button><button id="b-done" class="primary">Lock &amp; save</button></div>
@@ -177,6 +204,17 @@ function removeExhibition(cur,id){
   delete out.layout;delete out.exhibitionName;
   out.exhibitions=list;return out;
 }
+// Change fields on one model in exhibits.json (a value of null removes the field).
+function setExhibitFields(cur,id,fields){
+  const out=JSON.parse(JSON.stringify(cur)),e=(out.exhibits||[]).find(x=>x.id===id);
+  if(!e)throw new Error('That model is no longer in exhibits.json.');
+  for(const k in fields){if(fields[k]===null||fields[k]===undefined)delete e[k];else e[k]=fields[k]}
+  return out;
+}
+// What a placed model's size and turn would be as the model's own default: its default combined with this placement's changes.
+function defaultsFromPlacement(ex,L){return {scale:Math.round((+ex.scale||1)*(+L.scale||1)*1000)/1000,rotation:Math.round(wrap180((+ex.rotation||0)+(+L.rotation||0)))}}
+// Which saved galleries use a model, and how many times.
+function galleriesUsing(c,id){return getExhibitions(c).map(g=>({name:g.name||g.id,n:(g.layout||[]).filter(L=>L.exhibit===id).length})).filter(x=>x.n)}
 function utf8ToB64(str){const bytes=new TextEncoder().encode(str);let bin='';for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(bin)}
 function b64ToUtf8(b64){const bin=atob(b64.replace(/\s/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 // Save: read the live exhibits.json, change only the exhibitions, write it back. Retries once if the file changed meanwhile.
@@ -196,8 +234,8 @@ async function saveToGitHub(o,exh,f){
     if(!g.ok)throw await explain(g,'Reading exhibits.json');
     const meta=await g.json();
     const cur=JSON.parse(b64ToUtf8(meta.content));
-    const merged=o.remove?removeExhibition(cur,exh.id):mergeExhibition(cur,exh);
-    const body={message:'Gallery maker: '+(o.remove?'deleted ':'')+exh.name,content:utf8ToB64(JSON.stringify(merged,null,2)+'\n'),sha:meta.sha,branch:o.branch||'main'};
+    const merged=o.mutate?o.mutate(cur):(o.remove?removeExhibition(cur,exh.id):mergeExhibition(cur,exh));   // o.mutate: any other change to exhibits.json
+    const body={message:o.message||('Gallery maker: '+(o.remove?'deleted ':'')+exh.name),content:utf8ToB64(JSON.stringify(merged,null,2)+'\n'),sha:meta.sha,branch:o.branch||'main'};
     const p=await f(api,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify(body)});
     if(p.ok)return merged;
     if(p.status===409&&attempt===0)continue;
@@ -216,7 +254,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const store={get(k){try{return localStorage.getItem(k)||''}catch(e){return ''}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 let cfg=null,xrOK=false,session=null;
 // The gallery being made. layout entries: {exhibit,x,y,z,rotation,scale}, positions relative to the start spot.
-const work={id:null,name:'',description:'',layout:[],room:null,ret:false,extra:{}};
+const work={id:null,name:'',description:'',layout:[],room:null,ret:false,unl:false,extra:{}};
 window.galleryMaker={work,showCount:()=>showCount()};   // handy for testing
 
 // Same helpers as the other pages.
@@ -228,29 +266,29 @@ function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.V
 /* ---------------- page (outside the camera) ---------------- */
 function fillGallerySelect(){
   const sel=$('g-sel'),all=getExhibitions(cfg);
-  sel.innerHTML='<option value="">New gallery</option>'+all.map(x=>`<option value="${esc(x.id)}">${esc(x.name||x.id)} (${(x.layout||[]).length})</option>`).join('');
+  sel.innerHTML='<option value="">New gallery</option>'+all.map(x=>`<option value="${esc(x.id)}">${esc(x.name||x.id)} (${(x.layout||[]).length})${x.unlisted?' · unlisted':''}</option>`).join('');
 }
 function loadChoice(){
   const id=$('g-sel').value,x=id?getExhibitions(cfg).find(e=>e.id===id):null;
   work.id=x?x.id:null;work.layout=x?JSON.parse(JSON.stringify(x.layout||[])):[];
   $('g-name').value=x?(x.name||''):'';$('g-desc').value=x?(x.description||''):'';
-  work.extra={};if(x)for(const k in x)if(!['id','name','description','layout','room','recentreAtStart'].includes(k))work.extra[k]=JSON.parse(JSON.stringify(x[k]));   // keep any other settings the gallery already has
+  work.extra={};if(x)for(const k in x)if(!['id','name','description','layout','room','recentreAtStart','unlisted'].includes(k))work.extra[k]=JSON.parse(JSON.stringify(x[k]));   // keep any other settings the gallery already has
   const rm=x&&x.room;$('g-room').checked=!!rm;$('room-box').hidden=!rm;
   if(rm){$('g-rw').value=rm.width;$('g-rd').value=rm.depth;$('g-rs').value=rm.start||'entrance'}
-  $('g-ret').checked=!!(x&&x.recentreAtStart);
+  $('g-ret').checked=!!(x&&x.recentreAtStart);$('g-unl').checked=!!(x&&x.unlisted);
   readSettings();showCount();
 }
 function readSettings(){
   $('room-box').hidden=!$('g-room').checked;
   work.room=$('g-room').checked?{width:Math.max(1,+$('g-rw').value||6),depth:Math.max(1,+$('g-rd').value||6),start:$('g-rs').value}:null;
-  work.ret=$('g-ret').checked;
+  work.ret=$('g-ret').checked;work.unl=$('g-unl').checked;
 }
 function outsideCount(){const r=roomRect(work.room);return r?work.layout.filter(L=>!insideRoom(r,+L.x||0,+L.z||0)).length:0}
 function showCount(){
   const n=work.layout.length;
   $('g-count').textContent=n?n+' model'+(n===1?'':'s')+' in this gallery so far.':'No models placed yet.';
   $('go').textContent=n?'Open camera and keep editing':'Open camera and place models';
-  $('c-save').hidden=!n;
+  $('save-btns').hidden=!n;
   $('delgal').hidden=!(n&&work.id&&getExhibitions(cfg).some(x=>x.id===work.id));
   $('s-sum').textContent=n?summary():'';
 }
@@ -267,6 +305,7 @@ function currentExhibition(){
   const e=Object.assign({},work.extra,{id,name});if(desc)e.description=desc;
   if(work.room)e.room={width:work.room.width,depth:work.room.depth,start:work.room.start};
   if(work.ret)e.recentreAtStart=true;
+  if(work.unl)e.unlisted=true;
   e.layout=work.layout;return e;
 }
 function setStatus(msg,cls){const s=$('s-status');s.className='status '+(cls||'');s.innerHTML=msg}
@@ -276,9 +315,9 @@ async function init(){
   catch(e){$('note').textContent='Could not load exhibits.json. Is this page served over https?';return}
   try{xrOK=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar'))}catch(e){}
   $('note').innerHTML=xrOK?'Place models in your room with the camera and save them as a gallery.':'Placing models needs an Android phone with Google AR support, using Chrome. You can still read this page, but the camera part will not start.';
-  fillGallerySelect();$('c-setup').hidden=false;loadChoice();
+  fillGallerySelect();$('c-setup').hidden=false;$('c-models').hidden=false;renderModels();loadChoice();
   $('g-sel').onchange=loadChoice;
-  ['g-room','g-rw','g-rd','g-rs','g-ret'].forEach(id=>$(id).addEventListener('input',()=>{readSettings();showCount()}));
+  ['g-room','g-rw','g-rd','g-rs','g-ret','g-unl'].forEach(id=>$(id).addEventListener('input',()=>{readSettings();showCount()}));
   $('go').onclick=()=>start($('go'));$('again').onclick=()=>start($('again'));
   const m=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split('/')[1];
   $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');
@@ -301,6 +340,40 @@ async function doSave(){
   }catch(e){setStatus(esc(e&&e.message?e.message:e),'bad')}
   b.disabled=false;
 }
+// The repository, branch and token typed in step 2 (also remembered on this phone).
+function connection(){
+  const o={repo:$('s-repo').value.trim(),branch:$('s-branch').value.trim()||'main',token:$('s-token').value.trim()};
+  if(!/^[^\/\s]+\/[^\/\s]+$/.test(o.repo))return {err:'Enter the repository as owner/name in step 2.'};
+  if(!o.token)return {err:'Paste your GitHub token in step 2 first (see “How to make the token”).'};
+  store.set('gm_repo',o.repo);store.set('gm_branch',o.branch);store.set('gm_token',o.token);return {o};
+}
+/* ---- models: hide from / show in the public gallery ---- */
+let mTimer=null;
+function setMStatus(msg,cls){const s=$('m-status');s.className='status '+(cls||'');s.innerHTML=msg}
+function renderModels(){
+  const all=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true}));
+  const un=all.filter(e=>e.unlisted).length;
+  $('m-sum').textContent=all.length+' models'+(un?', '+un+' unlisted (hidden from the public gallery)':', all public')+'.';
+  $('m-list').innerHTML=all.map(e=>`<div class="mrow"><span>${esc(e.title||e.id)}</span><i class="${e.unlisted?'unl':''}">${e.unlisted?'Unlisted':'Public'}</i><button data-id="${esc(e.id)}">${e.unlisted?'Make public':'Hide'}</button></div>`).join('');
+  $('m-list').querySelectorAll('button').forEach(b=>b.onclick=()=>toggleListed(b));
+}
+async function toggleListed(b){
+  const e=cfg.exhibits.find(x=>x.id===b.dataset.id);if(!e)return;
+  const makePublic=!!e.unlisted;
+  if(makePublic&&!b.dataset.sure){   // publishing asks for a second tap
+    b.dataset.sure='1';b.textContent='Tap again to publish';clearTimeout(mTimer);
+    mTimer=setTimeout(()=>{delete b.dataset.sure;b.textContent='Make public'},6000);return;
+  }
+  clearTimeout(mTimer);
+  const c=connection();if(c.err){setMStatus(esc(c.err),'bad');return}
+  b.disabled=true;setMStatus('Saving…');
+  try{
+    cfg=await saveToGitHub(Object.assign(c.o,{mutate:cur=>setExhibitFields(cur,e.id,{unlisted:makePublic?null:true}),message:'Gallery maker: '+(makePublic?'made public: ':'hidden: ')+(e.title||e.id)}),null);
+    renderModels();
+    setMStatus('“'+esc(e.title||e.id)+'” is now '+(makePublic?'public':'unlisted')+'. GitHub Pages takes a few minutes to publish it.','ok');
+  }catch(err){b.disabled=false;setMStatus(esc(err&&err.message?err.message:err),'bad')}
+}
+
 let delTimer=null;
 async function doDelete(){
   const b=$('delgal'),x=getExhibitions(cfg).find(e=>e.id===work.id);if(!x)return;
@@ -336,7 +409,7 @@ const hint=(t,ms,force)=>{
   hintEl.textContent=t;hintEl.style.display='block';clearTimeout(hintTimer);
   if(ms)hintTimer=setTimeout(()=>{if(restoreHint&&restoreHint())return;hintEl.style.display='none'},ms);
 };
-['panel','list','hint'].forEach(id=>$(id).addEventListener('beforexrselect',e=>e.preventDefault()));
+['panel','list','hint','dpanel'].forEach(id=>$(id).addEventListener('beforexrselect',e=>e.preventDefault()));
 function hold(btn,fn){const nb=btn.cloneNode(true);btn.replaceWith(nb);btn=nb;   // fresh button each camera session, so handlers never double up
   let t,iv;const stop=()=>{clearTimeout(t);clearInterval(iv)};
   btn.addEventListener('pointerdown',e=>{e.preventDefault();fn();t=setTimeout(()=>{iv=setInterval(fn,70)},350)});
@@ -415,7 +488,7 @@ async function start(btn){
     async function addItem(ex,L){
       const g=await getModel(ex),o=SkeletonUtils.clone(g);
       const bb=lowestY(o),minY=(ex.ground===false||!isFinite(bb))?0:bb;   // at full size, as in the exhibition page
-      const it={ex,o,minY,L:Object.assign({x:0,y:0,z:0,rotation:0,scale:1},L)};
+      const it={ex,o,minY,low:bb,L:Object.assign({x:0,y:0,z:0,rotation:0,scale:1},L)};   // low: lowest point at full size (used when 'sits on the floor' is changed)
       items.push(it);group.add(o);place(it);return it;
     }
     function select(it){st.sel=it;st.moving=false;updateRing();refresh()}
@@ -462,10 +535,52 @@ async function start(btn){
       try{const n=await addItem(it.ex,Object.assign({},it.L,{x:r2(it.L.x+0.5)}));st.busy=false;select(n)}
       catch(e){st.busy=false;hint('Could not copy: '+(e.message||e))}
     };
+    /* ---- make the selected model's size/direction/floor setting its default, saved to exhibits.json ---- */
+    let dGround=true;
+    function dCompute(){
+      const it=st.sel,d=defaultsFromPlacement(it.ex,it.L),g0=it.ex.ground!==false;
+      return {d,changed:d.scale!==(+it.ex.scale||1)||d.rotation!==Math.round(wrap180(+it.ex.rotation||0))||dGround!==g0};
+    }
+    function dShow(){
+      const it=st.sel;if(!it)return;
+      const {d,changed}=dCompute(),used=galleriesUsing(cfg,it.ex.id),here=items.filter(i=>i.ex.id===it.ex.id).length;
+      $('d-title').textContent='Default for “'+(it.ex.title||it.ex.id)+'”';
+      $('d-body').innerHTML=changed
+        ?'Size: '+(+it.ex.scale||1)+' → <b>'+d.scale+'</b><br>Turn: '+Math.round(wrap180(+it.ex.rotation||0))+'° → <b>'+d.rotation+'°</b><br>'
+          +'This model will look like this everywhere it is used. Galleries using it: '+(used.length?used.map(u=>esc(u.name)+' ×'+u.n).join(', '):'none saved yet')+(here?'; this one ×'+here:'')+'. Their placements keep their own changes on top.'
+        :'Nothing to change yet. Change the size or turn, or the floor setting, then come back.';
+      $('d-ground').textContent='Sits on the floor: '+(dGround?'Yes':'No (keeps its own height)')+'  (tap to change)';
+      $('d-save').disabled=!changed;
+    }
+    $('b-default').onclick=()=>{
+      if(!st.sel||st.busy)return;
+      dGround=st.sel.ex.ground!==false;dShow();
+      $('dpanel').style.display='block';$('panel').style.display='none';
+    };
+    $('d-ground').onclick=()=>{dGround=!dGround;dShow()};
+    $('d-cancel').onclick=()=>{$('dpanel').style.display='none';$('panel').style.display='block'};
+    $('d-save').onclick=async()=>{
+      const it=st.sel;if(!it||st.busy)return;
+      const c=connection();if(c.err){$('d-body').innerHTML='<span style="color:#ff8a8a">'+esc(c.err)+' (Close the camera, fill it in, then try again.)</span>';return}
+      const {d}=dCompute(),ex=it.ex,id=ex.id;
+      st.busy=true;$('d-save').disabled=true;$('d-body').textContent='Saving…';
+      try{
+        cfg=await saveToGitHub(Object.assign(c.o,{
+          mutate:cur=>setExhibitFields(cur,id,{scale:d.scale,rotation:d.rotation,ground:dGround?null:false}),
+          message:'Gallery maker: default size and direction for '+(ex.title||id)}),null);
+        // bring everything on screen in line with the new default
+        ex.scale=d.scale;ex.rotation=d.rotation;if(dGround)delete ex.ground;else ex.ground=false;
+        it.L.scale=1;it.L.rotation=0;
+        items.filter(i=>i.ex.id===id).forEach(i=>{i.minY=(ex.ground===false||!isFinite(i.low))?0:i.low;place(i)});
+        renderModels();
+        $('dpanel').style.display='none';$('panel').style.display='block';st.busy=false;
+        updateRing();refresh();hint('Saved as the default for “'+(ex.title||id)+'”. Takes a few minutes to publish.',7000,true);
+      }catch(e){st.busy=false;$('d-save').disabled=false;$('d-body').innerHTML='<span style="color:#ff8a8a">'+esc(e&&e.message?e.message:e)+'</span>'}
+    };
     $('b-add').onclick=()=>{
       if(st.mode==='start'){hint('Set the start spot first: aim at the floor and tap.',6000,true);return}
       const l=$('litems');
-      l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
+      l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}${e.unlisted?' (unlisted)':''}</button>`).join('');
       l.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.adding=byId.get(b.dataset.id);st.moving=false;st.sel=null;updateRing();$('list').style.display='none';$('panel').style.display='block';refresh()});
       $('list').style.display='flex';$('panel').style.display='none';
     };
@@ -521,7 +636,7 @@ async function start(btn){
     }
 
     hintEl.textContent='';hintEl.style.display='block';
-    ui.style.display='block';$('list').style.display='none';$('panel').style.display='block';select(null);
+    ui.style.display='block';$('list').style.display='none';$('dpanel').style.display='none';$('panel').style.display='block';select(null);
     const xr=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
     renderer.xr.setReferenceSpaceType('local');
     await renderer.xr.setSession(xr);

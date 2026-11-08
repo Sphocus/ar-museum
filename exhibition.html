@@ -77,7 +77,7 @@ const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
 function page(ok){
-  const n=(exh.layout||[]).length,many=getExhibitions(cfg).length>1;
+  const n=(exh.layout||[]).length,many=getExhibitions(cfg).filter(x=>!x.unlisted).length>1;
   app.innerHTML=`<h1>${esc(exh.name||'Exhibition')}</h1>
   <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.${exh.room&&exh.room.width>0&&exh.room.depth>0?' Needs a space of about '+(+exh.room.width)+' × '+(+exh.room.depth)+' m.':''}</p>
   <div class="card"><b>How it works</b><ol>
@@ -187,11 +187,13 @@ async function start(btn){
   catch(e){app.textContent='Could not load exhibits.json. Is this page served over https?';return}
   const all=getExhibitions(cfg),want=new URLSearchParams(location.search).get('e');
   if(!all.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No exhibition has been set up yet.</p>';return}
-  exh=want?all.find(x=>x.id===want):(all.length===1?all[0]:null);
+  const listed=all.filter(x=>!x.unlisted);   // unlisted exhibitions are left out of the list but still open from their own link
+  exh=want?all.find(x=>x.id===want):(listed.length===1?listed[0]:null);
   if(want&&!exh){app.innerHTML='<h1>Exhibition</h1><p class="muted">That exhibition was not found.</p><p><a href="exhibition.html">All exhibitions</a></p>';return}
+  if(!exh&&!listed.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No exhibition has been set up yet.</p>';return}
   if(!exh){   // several exhibitions and none chosen: show a list
     document.title=cfg.museumName||'Exhibitions';
-    app.innerHTML=`<h1>${esc(cfg.museumName||'Exhibitions')}</h1><p class="muted">Choose an exhibition.</p>`+all.map(x=>`<div class="card"><b>${esc(x.name||x.id)}</b><div class="muted">${esc(x.description||'')}${x.description?' · ':''}${(x.layout||[]).length} exhibits</div><button class="go" data-e="${esc(x.id)}">Open</button></div>`).join('')+'<p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>';
+    app.innerHTML=`<h1>${esc(cfg.museumName||'Exhibitions')}</h1><p class="muted">Choose an exhibition.</p>`+listed.map(x=>`<div class="card"><b>${esc(x.name||x.id)}</b><div class="muted">${esc(x.description||'')}${x.description?' · ':''}${(x.layout||[]).length} exhibits</div><button class="go" data-e="${esc(x.id)}">Open</button></div>`).join('')+'<p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>';
     app.querySelectorAll('button[data-e]').forEach(bt=>bt.onclick=()=>{location.href='exhibition.html?e='+encodeURIComponent(bt.dataset.e)});
     return}
   document.title=exh.name||cfg.museumName||'Exhibition';

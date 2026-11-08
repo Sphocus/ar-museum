@@ -86,7 +86,7 @@ function render(){
     mv.addEventListener('error',e=>{st.textContent='Model: FAILED to load ('+((e.detail&&e.detail.sourceError&&e.detail.sourceError.message)||'unknown')+')'});
   }else{
     app.innerHTML=`<h1>${esc(cfg.museumName||'AR Museum')}</h1><p class="muted">Scan an exhibit’s QR code, or pick one below, then place it in your space.</p>
-    <div class="grid">${[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate autoplay interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
+    <div class="grid">${cfg.exhibits.filter(e=>!e.unlisted).sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate autoplay interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
     <p class="muted" style="margin-top:24px"><a href="qr.html">Printable QR codes</a></p>`;
     app.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>location.hash=el.dataset.go);
   }
@@ -176,7 +176,7 @@ async function startAR(ex,btn){
     state.openList=()=>{
       if(state.items.length>=MAX_MODELS){say('That is the limit for preview mode ('+MAX_MODELS+' models). Remove one to add another.',6000);return}
       const l=document.getElementById('xl-items');
-      l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
+      l.innerHTML=cfg.exhibits.filter(e=>!e.unlisted||e.id===ex.id).sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
       l.querySelectorAll('button').forEach(b=>b.onclick=()=>pick(cfg.exhibits.find(e=>e.id===b.dataset.id)));
       document.getElementById('xr-list').style.display='flex';
     };

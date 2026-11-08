@@ -25,11 +25,11 @@ fetch('exhibits.json').then(r=>r.json()).then(cfg=>{
   // One entrance QR code per exhibition (an older single "layout" counts as one exhibition).
   const exs=(Array.isArray(cfg.exhibitions)&&cfg.exhibitions.length)?cfg.exhibitions:((cfg.layout&&cfg.layout.length)?[{id:'main',name:cfg.exhibitionName||'Exhibition'}]:[]);
   head=exs.map(x=>{const u=exs.length>1?ent+'?e='+encodeURIComponent(x.id):ent,qq=qrcode(0,'M');qq.addData(u);qq.make();
-    return `<section>${qq.createSvgTag(8)}<h2>Entrance: ${x.name||x.id}</h2><p>${u}</p></section>`}).join('');
-  if(exs.length>1){const qa=qrcode(0,'M');qa.addData(ent);qa.make();head+=`<section>${qa.createSvgTag(8)}<h2>All exhibitions</h2><p>${ent}</p></section>`}
+    return `<section>${qq.createSvgTag(8)}<h2>Entrance: ${x.name||x.id}</h2>${x.unlisted?'<p><i>Unlisted: not shown in the public list, reachable only with this code or link.</i></p>':''}<p>${u}</p></section>`}).join('');
+  if(exs.filter(x=>!x.unlisted).length>1){const qa=qrcode(0,'M');qa.addData(ent);qa.make();head+=`<section>${qa.createSvgTag(8)}<h2>All exhibitions</h2><p>${ent}</p></section>`}
   document.getElementById('out').innerHTML=head+cfg.exhibits.map(e=>{
     const url=base+'#'+e.id,q=qrcode(0,'M');q.addData(url);q.make();
-    return `<section>${q.createSvgTag(8)}<h2>${e.title}</h2><p>${url}</p></section>`}).join('');
+    return `<section>${q.createSvgTag(8)}<h2>${e.title}</h2>${e.unlisted?'<p><i>Unlisted: not shown in the public gallery, reachable only with this code or link.</i></p>':''}<p>${url}</p></section>`}).join('');
 });
 </script>
 </body>

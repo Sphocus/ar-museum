@@ -227,14 +227,6 @@
       "scale": 1,
       "rotation": 0,
       "ground": false
-    },
-    {
-      "id": "void-7997",
-      "title": "Void 7997",
-      "description": "",
-      "model": "models/void-7997.glb",
-      "scale": 1,
-      "rotation": -2
     }
   ],
   "exhibitions": [

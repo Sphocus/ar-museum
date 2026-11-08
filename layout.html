@@ -384,7 +384,7 @@ async function start(btn){
     function place(it){   // set the 3D object from its layout entry
       const p=placeAt(st.base,it.L,it.ex,it.minY);
       it.o.scale.setScalar(p.sc);it.o.position.set(p.x,p.y,p.z);it.o.rotation.y=p.ry;
-      const fs=new THREE.Box3().setFromObject(it.o).getSize(new THREE.Vector3());it.rad=Math.max(fs.x,fs.z)/2*0.9;   // rough footprint radius, used for the room check
+      const fb=new THREE.Box3().setFromObject(it.o);it.fp={cx:(fb.min.x+fb.max.x)/2,cz:(fb.min.z+fb.max.z)/2,hx:(fb.max.x-fb.min.x)/2*0.9,hz:(fb.max.z-fb.min.z)/2*0.9};   // footprint box (a little forgiving), used for the room check
       if(it===st.sel)updateRing();
     }
     function buildRoom(){   // the room outline on the floor, from the start spot
@@ -398,7 +398,13 @@ async function start(btn){
         m.position.set((a.x+e.x)/2,st.base.oy+0.015,(a.z+e.z)/2);m.rotation.y=Math.atan2(-(e.z-a.z),e.x-a.x);roomGroup.add(m);
       }
     }
-    const isOut=it=>{const r=roomRect(work.room);return !!r&&!insideRoom(r,+it.L.x||0,+it.L.z||0,-(it.rad||0))};   // outside if any part of the footprint crosses the outline
+    const isOut=it=>{   // outside if the model's footprint box crosses the outline
+      const r=roomRect(work.room);if(!r||!st.base)return false;
+      if(!it.fp)return !insideRoom(r,+it.L.x||0,+it.L.z||0);
+      const c=floorToLocal(st.base,it.fp.cx,it.fp.cz),b=basis(st.base.th);
+      const hx=Math.abs(b.rx)*it.fp.hx+Math.abs(b.rz)*it.fp.hz,hz=Math.abs(b.fx)*it.fp.hx+Math.abs(b.fz)*it.fp.hz;   // half sizes along the room's own axes
+      return !(insideRoom(r,c.x-hx,c.z-hz)&&insideRoom(r,c.x+hx,c.z+hz));
+    };
     function updateRing(){
       const it=st.sel;if(!it){selRing.visible=false;return}
       const bb=new THREE.Box3().setFromObject(it.o),s=bb.getSize(new THREE.Vector3());

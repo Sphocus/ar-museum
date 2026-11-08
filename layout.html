@@ -161,6 +161,7 @@ code{font-size:.85em;word-break:break-all}
     <div id="sel" style="display:none">
       <div class="row"><span id="selname"></span><span id="selinfo"></span></div>
       <div class="row"><label>Size</label><button class="sm" id="s-dn">−</button><input type="range" id="s-rng" min="-3" max="3" step="0.01"><button class="sm" id="s-up">+</button></div>
+      <div class="row"><label>Tall</label><span class="val" id="real-h" style="flex:1;text-align:left"></span></div>
       <div class="row"><label>Turn</label><button class="sm" id="r-dn">◀</button><input type="range" id="r-rng" min="-180" max="180" step="1"><button class="sm" id="r-up">▶</button></div>
       <div class="row"><label>Height</label><button class="sm" id="h-dn">▼</button><span class="val" id="h-val"></span><button class="sm" id="h-up">▲</button></div>
       <div class="row"><button id="b-move">Move</button><button id="b-copy">Copy</button><button id="b-del">Delete</button><button id="b-close">Close</button></div>
@@ -365,6 +366,8 @@ function currentExhibition(){
   if(work.unl)e.unlisted=true;
   e.layout=work.layout;return e;
 }
+// A height in metres, with feet and inches alongside.
+function heightText(m){const inch=Math.round(m/0.0254),ft=Math.floor(inch/12);return m.toFixed(2)+' m  ('+ft+' ft '+(inch-ft*12)+' in)'}
 function setStatus(msg,cls){const s=$('s-status');s.className='status '+(cls||'');s.innerHTML=msg}
 
 async function init(){
@@ -643,7 +646,8 @@ async function start(btn){
         $('selname').textContent=it.ex.title||it.ex.id;
         $('s-rng').value=Math.log2(it.L.scale||1);$('r-rng').value=wrap180(it.L.rotation||0);
         $('h-val').textContent=((it.L.y||0)>=0?'+':'')+(it.L.y||0).toFixed(2)+' m';
-        $('selinfo').textContent=(it.height?'about '+it.height.toFixed(2)+' m tall':'');
+        $('selinfo').textContent='';
+        $('real-h').textContent=it.height?heightText(it.height):'';
         $('b-move').classList.toggle('on',st.moving);
       }
       const hb=$('b-here'),hr=$('here-row');

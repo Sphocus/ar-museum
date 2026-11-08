@@ -29,6 +29,12 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 #xr-hint{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;text-align:center;background:rgba(0,0,0,.6);padding:10px 14px;border-radius:12px}
 #xr-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;flex-wrap:wrap;pointer-events:auto}
 #xr-bar button{font:600 15px system-ui;padding:12px 16px;border:0;border-radius:999px;background:rgba(0,0,0,.7);color:#fff}
+#xr-bar button:disabled{opacity:.5}
+#xr-list{display:none;position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));max-height:62vh;flex-direction:column;background:rgba(0,0,0,.88);border-radius:16px;padding:8px;pointer-events:auto}
+#xr-list .lh{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font-weight:700}
+#xr-list .lh button{border:0;border-radius:10px;background:rgba(255,255,255,.18);color:#fff;font:600 14px system-ui;padding:8px 14px}
+#xl-items{overflow:auto}
+#xl-items button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(255,255,255,.12);background:none;color:#fff;font:15px system-ui;padding:12px 8px}
 </style>
 </head>
 <body>
@@ -37,8 +43,9 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
   <div id="xr-hint">Move your phone slowly over the floor or a table…</div>
   <div id="xr-bar">
     <button id="x-small">Smaller</button><button id="x-big">Bigger</button>
-    <button id="x-rot">Rotate</button><button id="x-reset">Reset</button><button id="x-exit">Exit</button>
+    <button id="x-rot">Rotate</button><button id="x-add">Add model</button><button id="x-del">Remove</button><button id="x-exit">Exit</button>
   </div>
+  <div id="xr-list"><div class="lh"><span>Choose a model</span><button id="xl-cancel">Cancel</button></div><div id="xl-items"></div></div>
 </div>
 <script type="module">
 import * as THREE from 'three';
@@ -88,23 +95,31 @@ function render(){
 /* ---------- WebXR: detect surfaces (hit-test) and tap to place ---------- */
 const ui=document.getElementById('xr-ui'),hint=document.getElementById('xr-hint');
 let hintTimer=null;
-function fadeHint(ms){clearTimeout(hintTimer);hintTimer=setTimeout(()=>{hint.style.display='none'},ms)}   // a message that stays a while, then gets out of the way
-function showHint(){clearTimeout(hintTimer);hint.style.display='block'}
+// Show a message at the top. With ms it fades after that long so it does not block the view; without, it stays until replaced.
+function say(t,ms){hint.textContent=t;hint.style.display='block';clearTimeout(hintTimer);if(ms)hintTimer=setTimeout(()=>{hint.style.display='none'},ms)}
+const MAX_MODELS=4;            // most models a visitor can have out at once in preview mode
+const MAX_BYTES=40e6;          // safety cap on the total download of the different models in use (only matters for very large models)
 let cur=null; // current AR session state
-document.getElementById('xr-bar').addEventListener('beforexrselect',e=>e.preventDefault()); // button taps must not place the model
-const grow=f=>{if(cur&&cur.obj){cur.obj.scale.multiplyScalar(f);if(cur.baseY!==undefined)cur.obj.position.y=cur.baseY-(cur.minY||0)*cur.obj.scale.y}};
-document.getElementById('x-small').onclick=()=>grow(1/1.2);
-document.getElementById('x-big').onclick=()=>grow(1.2);
-document.getElementById('x-rot').onclick=()=>{if(cur&&cur.obj){cur.spin=(cur.spin||0)+Math.PI/4;cur.obj.rotation.y+=Math.PI/4}};
-document.getElementById('x-reset').onclick=()=>{if(cur&&cur.obj){cur.scene.remove(cur.obj);cur.obj=null;cur.mixer=null;hint.textContent='Tap a surface to place the model.';showHint()}};
+['xr-bar','xr-list'].forEach(id=>document.getElementById(id).addEventListener('beforexrselect',e=>e.preventDefault())); // button taps must not place the model
+document.getElementById('x-small').onclick=()=>cur&&cur.grow(1/1.2);
+document.getElementById('x-big').onclick=()=>cur&&cur.grow(1.2);
+document.getElementById('x-rot').onclick=()=>cur&&cur.rotate();
+document.getElementById('x-del').onclick=()=>cur&&cur.remove();
+document.getElementById('x-add').onclick=()=>cur&&cur.openList();
+document.getElementById('xl-cancel').onclick=()=>{document.getElementById('xr-list').style.display='none'};
 document.getElementById('x-exit').onclick=()=>{if(cur)cur.session.end()};
 
 async function startAR(ex,btn){
   const label=btn.textContent;
   try{
     btn.disabled=true;btn.textContent='Loading model…';
-    let template,clips=[];
-    try{const gl=await new GLTFLoader().loadAsync(ex.model);template=gl.scene;solid(template,ex);clips=gl.animations||[]}
+    const loader=new GLTFLoader(),cache=new Map();   // one download per different model, even if it is placed twice
+    const getModel=e=>{
+      if(!cache.has(e.id))cache.set(e.id,loader.loadAsync(e.model).then(gl=>{solid(gl.scene,e);return {template:gl.scene,clips:gl.animations||[]}}));
+      return cache.get(e.id).catch(err=>{cache.delete(e.id);throw err});
+    };
+    let first;
+    try{first=await getModel(ex)}
     catch(err){throw new Error('could not load the model file at '+(ex.model.startsWith('data:')?'(built-in)':new URL(ex.model,location.href).href)+' ('+(err&&err.message?err.message:err)+')')}
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
@@ -113,23 +128,92 @@ async function startAR(ex,btn){
     const sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(1,3,2);scene.add(sun);
     const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));
     reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
-    const state={scene,obj:null,session:null,mixer:null};cur=state;const clock=new THREE.Clock();
-    const controller=renderer.xr.getController(0);scene.add(controller);
-    controller.addEventListener('select',()=>{
-      if(!reticle.visible)return;
-      if(!state.obj){state.obj=SkeletonUtils.clone(template);{const b=lowestY(state.obj);state.minY=(ex.ground===false||!isFinite(b))?0:b}   // lowest point of the model at full size, so its feet can rest on the surface
-        if(clips.length){state.mixer=new THREE.AnimationMixer(state.obj);clips.forEach(c=>state.mixer.clipAction(c).play())}state.obj.scale.setScalar(+ex.scale||1);scene.add(state.obj);state.spin=0;
-        hint.textContent='Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate.';showHint();fadeHint(9000)}
+    // yellow ring under the selected model (only drawn when there is more than one model)
+    const selRing=new THREE.Mesh(new THREE.RingGeometry(0.92,1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd24a,depthTest:false,transparent:true,side:THREE.DoubleSide}));
+    selRing.renderOrder=999;selRing.visible=false;scene.add(selRing);
+    // items: the models placed so far. sel: the one the buttons act on. pending: a chosen model waiting for the next tap on a surface.
+    const state={scene,items:[],sel:null,pending:{ex,m:first},busy:false,session:null,cam:null,sizes:new Map()};cur=state;const clock=new THREE.Clock();
+    state.sizes.set(ex.id,0);
+    const sizeOf=async e=>{try{const r=await fetch(e.model,{method:'HEAD'});const n=+r.headers.get('content-length');return isFinite(n)?n:0}catch(err){return 0}};
+    sizeOf(ex).then(n=>state.sizes.set(ex.id,n));
+
+    function buttons(){const b=document.getElementById('x-add');b.textContent='Add model ('+state.items.length+'/'+MAX_MODELS+')';b.disabled=state.busy||!state.items.length;document.getElementById('x-del').disabled=!state.sel}
+    function ring(){
+      const it=state.sel;if(!it||state.items.length<2){selRing.visible=false;return}
+      const bb=new THREE.Box3().setFromObject(it.obj),sz=bb.getSize(new THREE.Vector3());
+      selRing.scale.setScalar(Math.min(3,Math.max(0.15,Math.max(sz.x,sz.z)/2*0.9+0.05)));
+      selRing.position.set(it.obj.position.x,it.baseY+0.01,it.obj.position.z);selRing.visible=true;
+    }
+    const rest=it=>{it.obj.position.y=it.baseY-(it.minY||0)*it.obj.scale.y};   // lowest point of the model on the surface
+    function choose(it){state.sel=it;ring();buttons()}
+    function addItem(e,m){
+      const obj=SkeletonUtils.clone(m.template),b=lowestY(obj);
+      const it={ex:e,m,obj,minY:(e.ground===false||!isFinite(b))?0:b,spin:0,baseY:0,mixer:null};   // minY: lowest point at full size
+      if(m.clips.length){it.mixer=new THREE.AnimationMixer(obj);m.clips.forEach(c=>it.mixer.clipAction(c).play())}
+      obj.scale.setScalar(+e.scale||1);scene.add(obj);state.items.push(it);return it;
+    }
+    function moveTo(it,p){
       const cam=state.cam||renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());   // phone position from the live AR pose
-      const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
       if(Math.hypot(cam.x-p.x,cam.z-p.z)>0.25){
         const yaw=Math.atan2(cam.x-p.x,cam.z-p.z);   // turn toward where the visitor stands, every time it is placed or moved
-        state.obj.rotation.y=yaw+((+ex.rotation||0)*Math.PI/180)+state.spin;   // plus the model's own front fix and any manual Rotate
+        it.obj.rotation.y=yaw+((+it.ex.rotation||0)*Math.PI/180)+it.spin;   // plus the model's own front fix and any manual Rotate
       }
-      state.obj.position.setFromMatrixPosition(reticle.matrix);
-      state.baseY=state.obj.position.y;state.obj.position.y=state.baseY-(state.minY||0)*state.obj.scale.y;   // sit the lowest point on the surface
+      it.obj.position.copy(p);it.baseY=p.y;rest(it);ring();
+    }
+    state.grow=f=>{const it=state.sel;if(!it)return;it.obj.scale.multiplyScalar(f);rest(it);ring()};
+    state.rotate=()=>{const it=state.sel;if(!it)return;it.spin+=Math.PI/4;it.obj.rotation.y+=Math.PI/4};
+    state.remove=()=>{
+      const it=state.sel;if(!it)return;
+      scene.remove(it.obj);state.items.splice(state.items.indexOf(it),1);
+      if(state.items.length){state.sel=state.items[state.items.length-1];say('Removed. '+state.items.length+' of '+MAX_MODELS+' models out.',5000)}
+      else{state.sel=null;state.pending={ex:it.ex,m:it.m};say('Tap a surface to place the model.')}   // nothing left: the next tap puts it back, as Reset used to
+      ring();buttons();
+    };
+    state.openList=()=>{
+      if(state.items.length>=MAX_MODELS){say('That is the limit for preview mode ('+MAX_MODELS+' models). Remove one to add another.',6000);return}
+      const l=document.getElementById('xl-items');
+      l.innerHTML=[...cfg.exhibits].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<button data-id="${esc(e.id)}">${esc(e.title||e.id)}</button>`).join('');
+      l.querySelectorAll('button').forEach(b=>b.onclick=()=>pick(cfg.exhibits.find(e=>e.id===b.dataset.id)));
+      document.getElementById('xr-list').style.display='flex';
+    };
+    async function pick(e){
+      document.getElementById('xr-list').style.display='none';
+      if(!e||state.busy)return;
+      state.busy=true;buttons();say('Loading “'+(e.title||e.id)+'”…');
+      try{
+        if(!state.sizes.has(e.id))state.sizes.set(e.id,await sizeOf(e));
+        const inUse=new Set(state.items.map(i=>i.ex.id));inUse.add(e.id);
+        const total=[...inUse].reduce((a,id)=>a+(state.sizes.get(id)||0),0);
+        if(total>MAX_BYTES){state.busy=false;buttons();say('Those models together are too large for preview mode (about '+Math.round(total/1e6)+' MB). Remove one first.',7000);return}
+        const m=await getModel(e);
+        state.pending={ex:e,m};state.busy=false;buttons();
+        say('Aim at the floor or a table where “'+(e.title||e.id)+'” should go, then tap.');
+      }catch(err){state.busy=false;buttons();say('Could not load that model: '+(err&&err.message?err.message:err),7000)}
+    }
+
+    const controller=renderer.xr.getController(0);scene.add(controller);
+    const ray=new THREE.Raycaster();
+    controller.addEventListener('select',()=>{
+      if(state.busy)return;
+      // With several models: tapping a different model selects it (tapping the selected one, or empty space, moves the selected one to the ring).
+      if(!state.pending&&state.items.length>1){
+        const m4=new THREE.Matrix4().extractRotation(controller.matrixWorld);
+        ray.ray.origin.setFromMatrixPosition(controller.matrixWorld);ray.ray.direction.set(0,0,-1).applyMatrix4(m4);
+        const hits=ray.intersectObjects(state.items.map(i=>i.obj),true);
+        if(hits.length){let o=hits[0].object,f=null;while(o&&!f){f=state.items.find(i=>i.obj===o)||null;o=o.parent}
+          if(f&&f!==state.sel){choose(f);say('Selected “'+(f.ex.title||f.ex.id)+'”. The buttons now act on it.',5000);return}}
+      }
+      if(!reticle.visible)return;
+      const p=new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+      if(state.pending){
+        const first=!state.items.length,it=addItem(state.pending.ex,state.pending.m);state.pending=null;
+        moveTo(it,p);choose(it);
+        say(first?'Placed. Tap elsewhere to move it (it turns to face you). Use the buttons to resize or rotate, or Add model for up to '+MAX_MODELS+'.':'Placed. Tap elsewhere to move it. Tap another model to select it.',9000);
+        return;
+      }
+      if(state.sel)moveTo(state.sel,p);
     });
-    ui.style.display='block';showHint();hint.textContent='Move your phone slowly over the floor or a table…';
+    ui.style.display='block';document.getElementById('xr-list').style.display='none';buttons();say('Move your phone slowly over the floor or a table…');
     const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
     state.session=session;
     renderer.xr.setReferenceSpaceType('local');
@@ -149,10 +233,10 @@ async function startAR(ex,btn){
         if(hits.length){
           const pose=hits[0].getPose(renderer.xr.getReferenceSpace());
           reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);
-          if(!state.obj&&hint.textContent!==SURF)hint.textContent=SURF;   // only touch the page text when it actually changes (writing it every frame makes the AR overlay stutter)
-        }else{reticle.visible=false;if(!state.obj&&hint.textContent!==MOVE)hint.textContent=MOVE}
+          if(!state.items.length&&hint.textContent!==SURF)say(SURF);   // only touch the page text when it actually changes (writing it every frame makes the AR overlay stutter)
+        }else{reticle.visible=false;if(!state.items.length&&hint.textContent!==MOVE)say(MOVE)}
       }
-      if(state.mixer)state.mixer.update(clock.getDelta());else clock.getDelta();
+      const dt=clock.getDelta();state.items.forEach(i=>{if(i.mixer)i.mixer.update(dt)});
       renderer.render(scene,camera);
     });
   }catch(e){

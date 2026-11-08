@@ -66,13 +66,13 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 function render(){
   const id=location.hash.slice(1),ex=cfg.exhibits.find(e=>e.id===id);
   if(ex){
-    // With WebXR (Android Chrome) we run our own surface-detection + tap-to-place AR.
-    // Without it (iPhone) model-viewer's built-in AR (Quick Look) is used instead.
+    // With WebXR (Android Chrome) we run our own surface-detection + tap-to-place AR (no Google viewer button: it only duplicated this).
+    // Without it (iPhone, or an Android phone without WebXR) model-viewer's built-in AR (Quick Look / Scene Viewer) is used instead.
     const fallback='ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
     app.innerHTML=`<a href="#">← All exhibits</a>
     <div class="card big" style="position:relative;margin-top:10px">
-      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate autoplay shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${fallback}>
-        <button slot="ar-button" class="ar">${xrOK?'Simple AR (Google viewer)':'View in your space'}</button>
+      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate autoplay shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${xrOK?'':fallback}>
+        ${xrOK?'':'<button slot="ar-button" class="ar">View in your space</button>'}
       </model-viewer>
       <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>
       ${xrOK?`<button class="arbtn" id="go-ar">Place in your space</button>
@@ -246,7 +246,7 @@ async function startAR(ex,btn){
   }catch(e){
     ui.style.display='none';cur=null;
     btn.disabled=false;btn.textContent=label;
-    alert('Tap-to-place AR could not start on this phone.\n\nReason: '+(e&&e.message?e.message:e)+'\n\nYou can still use the “Simple AR (Google viewer)” button on the model.');
+    alert('Tap-to-place AR could not start on this phone.\n\nReason: '+(e&&e.message?e.message:e)+'\n\nTry reloading the page, or use a different browser or phone.');
   }
 }
 

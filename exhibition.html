@@ -101,7 +101,7 @@ async function start(btn){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.01,60);
     scene.add(new THREE.HemisphereLight(0xffffff,0xbbbbff,1.3));
     const sun=new THREE.DirectionalLight(0xffffff,1.1);sun.position.set(1,3,2);scene.add(sun);
-    const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xffffff}));
+    const reticle=new THREE.Mesh(new THREE.RingGeometry(0.07,0.09,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x44ddff}));
     reticle.matrixAutoUpdate=false;reticle.visible=false;scene.add(reticle);
     const group=new THREE.Group();scene.add(group);
     const state={group,placed:false,session:null,mixers:[],objs:[],base:null,fwd:new THREE.Vector3(),cam:null};cur=state;const clock=new THREE.Clock();

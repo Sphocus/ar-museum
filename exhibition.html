@@ -146,6 +146,12 @@ const RETURN_DIST=2;   // metres from the start spot beyond which Re-centre asks
 const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by up to 60 degrees when tapping Re-centre (a normal 30-45 degree placement tilt is fine). 0.87 = 30 degrees (stricter), 0.3 = 72 degrees (forgiving).
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
 
+// General notes shown on the exhibition list (each exhibition's own page adds its space and any content warning).
+function beforeCard(ok){return `<div class="card"><b>Before you start</b><ul class="tick">
+    <li>You need an <b>Android phone with Chrome</b>.${ok?' Yours looks good to go.':''}</li>
+    <li>Find a clear area where you can walk a few steps in each direction. Each exhibition says how much space it needs.</li>
+    <li>Good light and a floor or table with some pattern or texture help your phone find the surface.</li>
+    <li>Your phone will ask to use the camera. Nothing is recorded or sent anywhere.</li></ul></div>`}
 function page(ok){
   const n=(exh.layout||[]).length,many=getExhibitions(cfg).filter(x=>!x.unlisted).length>1;
   const rm=exh.room&&exh.room.width>0&&exh.room.depth>0?exh.room:null;
@@ -154,17 +160,16 @@ function page(ok){
   app.innerHTML=(isDraft?'<div class="card" style="border-color:var(--accent)"><b>Test run</b><div class="muted">This gallery is not saved. You are seeing it the way a visitor will. <a href="layout.html">Back to the gallery maker</a></div></div>':'')+`<p class="muted" style="margin:0 0 4px">Welcome to</p><h1>${esc(exh.name||'Exhibition')}</h1>
   <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'}, placed around you in the real room through your phone’s camera.</p>
   ${warn?`<div class="card warn"><b>Please note</b><div>${esc(warn)}</div><label class="chk"><input type="checkbox" id="warn-ok"> I understand, continue</label></div>`:''}
-  <div class="card"><b>Before you start</b><ul class="tick">
-    <li>${ok?'You need an <b>Android phone with Chrome</b>. Yours looks good to go.':'You need an <b>Android phone with Chrome</b>.'}</li>
-    <li>${space}</li>
-    <li>Good light and a floor or table with some pattern or texture help your phone find the surface.</li>
-    <li>Your phone will ask to use the camera. Nothing is recorded or sent anywhere.</li></ul></div>
+  <div class="card"><b>Good to know</b><ul class="tick">
+    <li>Needs an <b>Android phone with Chrome</b>.</li>
+    <li>${space}</li></ul></div>
   <div class="card"><b>How it works</b><ol>
     <li>Tap the button below and allow the camera.</li>
     <li>Aim at the floor about 2 metres ahead, the way the exhibition should open, until the blue ring appears. Tap once.</li>
     <li>Walk around slowly and look at everything. <b>Tap a model</b> to read about it.</li></ol>
-    <div class="muted" style="margin-top:8px"><b>Buttons at the bottom:</b> <b>Re-centre</b> moves the exhibition to where you stand, if it drifts. <b>Labels</b> shows every name. <b>Exit</b> leaves the camera.</div></div>
-  ${ok?`<button class="go" id="go">Start exhibition</button><button class="go alt" id="go-mini">Tabletop view (miniature)</button><p class="muted">Short of space? Tabletop view shrinks the whole exhibition to sit on a table.</p><div id="prog" class="prog" hidden><div></div><span></span></div>`:'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
+    <div class="muted" style="margin-top:8px"><b>Buttons at the bottom:</b> <b>Re-centre</b> moves the exhibition to where you stand, if it drifts. <b>Labels</b> shows every name. <b>Exit</b> leaves the camera.</div>
+    <div class="muted" style="margin-top:8px"><b>Tabletop view</b> shrinks the exhibition to fit on a table.</div></div>
+  ${ok?`<button class="go" id="go">Start exhibition</button><button class="go alt" id="go-mini">Tabletop view (miniature)</button><div id="prog" class="prog" hidden><div></div><span></span></div>`:'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
   <p class="muted" style="margin-top:20px">${many?'<a href="exhibition.html">All exhibitions</a> · ':''}<a href="index.html">Preview mode: view single exhibits</a> · <a href="credits.html${exh.id&&!isDraft?'?e='+encodeURIComponent(exh.id):''}">Credits</a></p>`;
   const b=document.getElementById('go'),bm=document.getElementById('go-mini'),wk=document.getElementById('warn-ok');
   const gate=()=>{const off=!!wk&&!wk.checked;[b,bm].forEach(x=>{if(x)x.disabled=off})};
@@ -312,7 +317,7 @@ async function start(btn,mini){
   if(!exh&&!listed.length){app.innerHTML='<h1>Exhibition</h1><p class="muted">No exhibition has been set up yet.</p>';return}
   if(!exh){   // several exhibitions and none chosen: show a list
     document.title=cfg.museumName||'Exhibitions';
-    app.innerHTML=`<h1>${esc(cfg.museumName||'Exhibitions')}</h1><p class="muted">Choose an exhibition.</p>`+listed.map(x=>`<div class="card"><b>${esc(x.name||x.id)}</b><div class="muted">${esc(x.description||'')}${x.description?' · ':''}${(x.layout||[]).length} exhibits</div><button class="go" data-e="${esc(x.id)}">Open</button></div>`).join('')+'<p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>';
+    app.innerHTML=`<h1>${esc(cfg.museumName||'Exhibitions')}</h1><p class="muted">Choose an exhibition.</p>${beforeCard(ok)}`+listed.map(x=>`<div class="card"><b>${esc(x.name||x.id)}</b><div class="muted">${esc(x.description||'')}${x.description?' · ':''}${(x.layout||[]).length} exhibits</div><button class="go" data-e="${esc(x.id)}">Open</button></div>`).join('')+'<p class="muted" style="margin-top:20px"><a href="index.html">Preview mode: view single exhibits</a></p>';
     app.querySelectorAll('button[data-e]').forEach(bt=>bt.onclick=()=>{location.href='exhibition.html?e='+encodeURIComponent(bt.dataset.e)});
     return}
   document.title=exh.name||cfg.museumName||'Exhibition';

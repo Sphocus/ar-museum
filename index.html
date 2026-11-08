@@ -71,7 +71,7 @@ function render(){
     const fallback='ar ar-modes="scene-viewer quick-look" ar-placement="floor" ar-scale="auto"';
     app.innerHTML=`<a href="#">← All exhibits</a>
     <div class="card big" style="position:relative;margin-top:10px">
-      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate autoplay shadow-intensity="1" ${ex.rotation?`orientation="0deg ${+ex.rotation||0}deg 0deg"`:''} ${xrOK?'':fallback}>
+      <model-viewer src="${esc(ex.model)}" ${ex.usdz?`ios-src="${esc(ex.usdz)}"`:''} alt="${esc(ex.title)}" camera-controls touch-action="pan-y" auto-rotate autoplay shadow-intensity="1" ${ex.rotation?`orientation="0deg 0deg ${+ex.rotation||0}deg"`:''} ${xrOK?'':fallback}>
         ${xrOK?'':'<button slot="ar-button" class="ar">View in your space</button>'}
       </model-viewer>
       <div class="b"><h2>${esc(ex.title)}</h2><div>${esc(ex.description)}</div>

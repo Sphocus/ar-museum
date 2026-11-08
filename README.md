@@ -11,6 +11,7 @@ No marker, no pattern, no target image. Everything runs in the visitor's phone b
 | `index.html` | Preview mode: a gallery of single exhibits. On Android up to 4 models can be placed at once (Add model, Remove, Deselect). |
 | `exhibition.html` | Exhibition mode: every exhibit of one exhibition is placed around the visitor in a fixed layout. `exhibition.html?e=ID` opens one exhibition. |
 | `layout.html` | The gallery maker. Private (not linked from the public pages). Android phone only. |
+| `credits.html` | Credits for every public model (from the descriptions in `exhibits.json`). `credits.html?e=ID` lists just the models one exhibition uses. |
 | `qr.html` | Prints one entrance QR code per exhibition. |
 | `exhibits.json` | The list of models and exhibitions. |
 | `models/` | The .glb files. |
@@ -30,12 +31,15 @@ Optional fields: `"scale":0.2` (1 = as made), `"rotation":-90` (the model's own 
 - With no `?e=`, one listed exhibition opens directly and several show a list. Unlisted exhibitions (`"unlisted":true`) are left out of the list but open from their own link or QR code.
 - An older file with a single top-level `"layout"` still works as one exhibition.
 - Optional: `"room":{"width":6,"depth":4,"start":"entrance"}` (start can be `entrance`, `corner-right`, `corner-left` or `centre`) shows a "needs a space of about..." note and, in the gallery maker, an outline on the floor with warnings for models outside it.
+- Optional: `"warning":"Contains nude sculptures"` shows a notice on the exhibition's start page; visitors must tick "I understand" before the start buttons work. Can also be set in the gallery maker (Content warning).
 - Optional: `"recentreAtStart":true` makes Re-centre work only near the start spot (otherwise it asks the visitor to walk back).
 
 Each layout entry: `{"exhibit":"skull","x":-0.7,"y":0,"z":1.8,"rotation":0,"scale":1}`
 - `x`: metres to the right of the start spot (negative = left); `z`: metres ahead; `y`: height in metres
 - `rotation`: extra turn in degrees (0 = the model faces the start spot); it adds to the exhibit's own `rotation`
 - `scale`: extra size multiplier on top of the exhibit's own scale
+
+The start page welcomes the visitor and shows a "Before you start" card (Android and Chrome needed, space needed, tips), a short how-to, a loading bar while models download, and a Credits link. **Tabletop view (miniature)** shrinks the whole exhibition to sit on a table (tap a table or floor; **Move** puts it elsewhere).
 
 Visitors stand on the start spot, aim at the floor about 2 m ahead (the way the exhibition opens) and tap once. **Re-centre** moves the whole exhibition to where they stand and face (hold the phone within about 60 degrees of level). Tapping a model shows its title and description (credit and licence). Accuracy drifts as people walk further from the start spot.
 

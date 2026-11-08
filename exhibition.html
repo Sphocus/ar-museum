@@ -17,6 +17,11 @@ h1{font-size:1.8rem;margin:0 0 6px}
 ol{padding-left:20px;margin:8px 0}li{margin:6px 0}
 button.go{display:block;width:100%;margin-top:16px;background:var(--accent);color:#fff;border:0;border-radius:999px;padding:15px 24px;font:600 1.05rem system-ui;cursor:pointer}
 button.go:disabled{opacity:.6}
+button.go.alt{background:transparent;border:2px solid var(--accent);color:var(--accent);margin-top:10px}
+.card.warn{border-color:var(--accent);border-width:2px}
+label.chk{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.95rem}label.chk input{width:20px;height:20px;margin:0;flex:none}
+ul.tick{list-style:none;padding:0;margin:8px 0}ul.tick li{padding-left:24px;position:relative}ul.tick li:before{content:'✓';position:absolute;left:0;color:var(--accent);font-weight:700}
+.prog{margin-top:14px;font-family:system-ui,sans-serif;font-size:.9rem;color:var(--muted)}.prog>div{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.prog>div:before{content:'';display:block;height:100%;width:var(--p,0%);background:var(--accent);transition:width .25s}.prog span{display:block;margin-top:6px;text-align:center}
 a{color:var(--accent);font-family:system-ui,sans-serif}
 #xr-ui{display:none;position:fixed;inset:0;pointer-events:none;color:#fff;font-family:system-ui,sans-serif}
 #xr-hint{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;text-align:center;background:rgba(0,0,0,.65);padding:10px 14px;border-radius:12px}
@@ -143,33 +148,51 @@ const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, to
 
 function page(ok){
   const n=(exh.layout||[]).length,many=getExhibitions(cfg).filter(x=>!x.unlisted).length>1;
-  app.innerHTML=(isDraft?'<div class="card" style="border-color:var(--accent)"><b>Test run</b><div class="muted">This gallery is not saved. You are seeing it the way a visitor will. <a href="layout.html">Back to the gallery maker</a></div></div>':'')+`<h1>${esc(exh.name||'Exhibition')}</h1>
-  <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'} placed around you in the room.${exh.room&&exh.room.width>0&&exh.room.depth>0?' Needs a space of about '+(+exh.room.width)+' × '+(+exh.room.depth)+' m.':''}</p>
+  const rm=exh.room&&exh.room.width>0&&exh.room.depth>0?exh.room:null;
+  const warn=exh.warning?String(exh.warning).trim():'';
+  const space=rm?'This exhibition needs a clear space of about <b>'+(+rm.width)+' × '+(+rm.depth)+' m</b>. Stand at the entrance, or wherever you would like it to begin.':'Find a clear area where you can walk a few steps in each direction.';
+  app.innerHTML=(isDraft?'<div class="card" style="border-color:var(--accent)"><b>Test run</b><div class="muted">This gallery is not saved. You are seeing it the way a visitor will. <a href="layout.html">Back to the gallery maker</a></div></div>':'')+`<p class="muted" style="margin:0 0 4px">Welcome to</p><h1>${esc(exh.name||'Exhibition')}</h1>
+  <p class="muted">${esc(exh.description||'')}${exh.description?' · ':''}${n} exhibit${n===1?'':'s'}, placed around you in the real room through your phone’s camera.</p>
+  ${warn?`<div class="card warn"><b>Please note</b><div>${esc(warn)}</div><label class="chk"><input type="checkbox" id="warn-ok"> I understand, continue</label></div>`:''}
+  <div class="card"><b>Before you start</b><ul class="tick">
+    <li>${ok?'You need an <b>Android phone with Chrome</b>. Yours looks good to go.':'You need an <b>Android phone with Chrome</b>.'}</li>
+    <li>${space}</li>
+    <li>Good light and a floor or table with some pattern or texture help your phone find the surface.</li>
+    <li>Your phone will ask to use the camera. Nothing is recorded or sent anywhere.</li></ul></div>
   <div class="card"><b>How it works</b><ol>
-    <li>Stand on the marked start spot (or wherever you want the exhibition to begin).</li>
     <li>Tap the button below and allow the camera.</li>
-    <li>Aim at the floor about 2 metres ahead, the way the exhibition should open, and tap once.</li>
-    <li>Walk around and look at everything.</li></ol></div>
-  ${ok?'<button class="go" id="go">Start exhibition</button><button class="go" id="go-mini" style="margin-top:10px;background:transparent;border:2px solid var(--accent);color:var(--accent)">Tabletop view (miniature)</button><p class="muted">Not enough room? Tabletop view shrinks the whole exhibition to sit on a table.</p>':'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
-  <p class="muted" style="margin-top:20px">${many?'<a href="exhibition.html">All exhibitions</a> · ':''}<a href="index.html">Preview mode: view single exhibits</a></p>`;
-  const b=document.getElementById('go');if(b)b.onclick=()=>start(b,false);
-  const bm=document.getElementById('go-mini');if(bm)bm.onclick=()=>start(bm,true);
+    <li>Aim at the floor about 2 metres ahead, the way the exhibition should open, until the blue ring appears. Tap once.</li>
+    <li>Walk around slowly and look at everything. <b>Tap a model</b> to read about it.</li></ol>
+    <div class="muted" style="margin-top:8px"><b>Buttons at the bottom:</b> <b>Re-centre</b> moves the exhibition to where you stand, if it drifts. <b>Labels</b> shows every name. <b>Exit</b> leaves the camera.</div></div>
+  ${ok?`<button class="go" id="go">Start exhibition</button><button class="go alt" id="go-mini">Tabletop view (miniature)</button><p class="muted">Short of space? Tabletop view shrinks the whole exhibition to sit on a table.</p><div id="prog" class="prog" hidden><div></div><span></span></div>`:'<div class="card">This needs an Android phone with Google AR support, using Chrome. iPhones are not supported in exhibition mode yet.</div>'}
+  <p class="muted" style="margin-top:20px">${many?'<a href="exhibition.html">All exhibitions</a> · ':''}<a href="index.html">Preview mode: view single exhibits</a> · <a href="credits.html${exh.id&&!isDraft?'?e='+encodeURIComponent(exh.id):''}">Credits</a></p>`;
+  const b=document.getElementById('go'),bm=document.getElementById('go-mini'),wk=document.getElementById('warn-ok');
+  const gate=()=>{const off=!!wk&&!wk.checked;[b,bm].forEach(x=>{if(x)x.disabled=off})};
+  if(wk){wk.onchange=gate;gate()}
+  if(b)b.onclick=()=>start(b,false);
+  if(bm)bm.onclick=()=>start(bm,true);
 }
 
+// Loading bar on the start page, and keeping both start buttons (and the content-warning tick) in step while loading.
+function progress(done,total,name){const p=document.getElementById('prog');if(!p)return;p.hidden=false;p.firstElementChild.style.setProperty('--p',Math.round(100*done/Math.max(1,total))+'%');
+  p.lastElementChild.textContent=done>=total?'Starting the camera…':'Loading '+(done+1)+' of '+total+(name?': '+name:'')+'…'}
+function setBusy(on){const p=document.getElementById('prog');if(p&&!on)p.hidden=true;
+  const wk=document.getElementById('warn-ok');['go','go-mini'].forEach(id=>{const x=document.getElementById(id);if(x)x.disabled=on||(!!wk&&!wk.checked)})}
 async function start(btn,mini){
   const label=btn.textContent;
   try{
-    btn.disabled=true;
+    btn.disabled=true;setBusy(true);
     const loader=new GLTFLoader(),items=[];
     let i=0;
     for(const L of exh.layout){
       const ex=cfg.exhibits.find(e=>e.id===L.exhibit);if(!ex)continue;
-      btn.textContent='Loading '+(++i)+' of '+exh.layout.length+'…';
+      btn.textContent='Loading…';progress(i,exh.layout.length,ex.title||ex.id);i++;
       let g,clips=[];
       try{const gl=await loader.loadAsync(ex.model);g=gl.scene;solid(g,ex);clips=gl.animations||[]}
       catch(err){throw new Error('could not load '+(ex.model.startsWith('data:')?ex.title+' (built-in)':new URL(ex.model,location.href).href))}
       items.push({L,ex,g,clips});
     }
+    progress(exh.layout.length,exh.layout.length,'');
     if(!items.length)throw new Error('no exhibits in the layout');
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;
@@ -252,7 +275,7 @@ async function start(btn,mini){
     const source=await session.requestHitTestSource({space:viewer});
     session.addEventListener('end',()=>{
       renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();labelBtn.disabled=true;labelBtn.classList.remove('on');cur=null;renderer.dispose();
-      btn.disabled=false;btn.textContent=label;centreBtn.textContent='Re-centre';
+      btn.disabled=false;btn.textContent=label;setBusy(false);centreBtn.textContent='Re-centre';
     });
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w))}}
@@ -266,7 +289,7 @@ async function start(btn,mini){
       renderer.render(scene,camera);
     });
   }catch(e){
-    ui.style.display='none';cur=null;btn.disabled=false;btn.textContent=label;
+    ui.style.display='none';cur=null;btn.disabled=false;btn.textContent=label;setBusy(false);
     alert('Exhibition could not start.\n\nReason: '+(e&&e.message?e.message:e));
   }
 }

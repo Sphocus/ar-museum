@@ -109,7 +109,7 @@ function render(){
   }else{
     app.innerHTML=`<h1>${esc(cfg.museumName||'AR Museum')}</h1><p class="muted">Scan an exhibit’s QR code, or pick one below, then place it in your space.</p>
     <div class="grid">${cfg.exhibits.filter(e=>!e.unlisted).sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true})).map(e=>`<div class="card item" data-go="${esc(e.id)}"><model-viewer src="${esc(e.model)}" alt="${esc(e.title)}" auto-rotate autoplay interaction-prompt="none" style="pointer-events:none"></model-viewer><div class="b"><b>${esc(e.title)}</b><div class="muted">${esc((e.description||'').slice(0,80))}</div></div></div>`).join('')}</div>
-    <p class="muted" style="margin-top:24px"><a href="qr.html">Printable QR codes</a></p>`;
+    <p class="muted" style="margin-top:24px"><a href="qr.html">Printable QR codes</a> · <a href="credits.html">Credits</a></p>`;
     app.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>location.hash=el.dataset.go);
   }
 }

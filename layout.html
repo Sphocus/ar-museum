@@ -92,6 +92,8 @@ code{font-size:.85em;word-break:break-all}
         <select id="g-rs"><option value="entrance">Middle of a wall, facing into the room</option><option value="corner-right">In a corner, room ahead and to the right</option><option value="corner-left">In a corner, room ahead and to the left</option><option value="centre">In the middle of the room</option></select></label>
       <p class="muted" style="margin:6px 0 0">Width goes left to right and depth goes ahead of you, as you face the way the gallery opens. The room outline shows on the floor once you set the start spot, and models outside it are flagged.</p>
     </div>
+    <label>Content warning (optional)<input type="text" id="g-warn" maxlength="200" placeholder="e.g. Contains nude sculptures"></label>
+    <p class="muted" style="margin:4px 0 0">If filled in, visitors see it on the start page and must tick “I understand” before they can start. Leave empty for none.</p>
     <label class="chk"><input type="checkbox" id="g-ret"> Re-centre only works near the start spot</label>
     <label class="chk"><input type="checkbox" id="g-unl"> Unlisted: left out of the public list, opens only from its link or QR code</label>
     <button class="go" id="go">Open camera and place models</button>
@@ -355,16 +357,16 @@ function loadChoice(){
   const id=$('g-sel').value,x=id?getExhibitions(cfg).find(e=>e.id===id):null;
   work.id=x?x.id:null;work.layout=x?JSON.parse(JSON.stringify(x.layout||[])):[];
   $('g-name').value=x?(x.name||''):'';$('g-desc').value=x?(x.description||''):'';
-  work.extra={};if(x)for(const k in x)if(!['id','name','description','layout','room','recentreAtStart','unlisted'].includes(k))work.extra[k]=JSON.parse(JSON.stringify(x[k]));   // keep any other settings the gallery already has
+  work.extra={};if(x)for(const k in x)if(!['id','name','description','layout','room','recentreAtStart','unlisted','warning'].includes(k))work.extra[k]=JSON.parse(JSON.stringify(x[k]));   // keep any other settings the gallery already has
   const rm=x&&x.room;$('g-room').checked=!!rm;$('room-box').hidden=!rm;
   if(rm){$('g-rw').value=rm.width;$('g-rd').value=rm.depth;$('g-rs').value=rm.start||'entrance'}
-  $('g-ret').checked=!!(x&&x.recentreAtStart);$('g-unl').checked=!!(x&&x.unlisted);
+  $('g-warn').value=x&&x.warning?String(x.warning):'';$('g-ret').checked=!!(x&&x.recentreAtStart);$('g-unl').checked=!!(x&&x.unlisted);
   readSettings();showCount();
 }
 function readSettings(){
   $('room-box').hidden=!$('g-room').checked;
   work.room=$('g-room').checked?{width:Math.max(1,+$('g-rw').value||6),depth:Math.max(1,+$('g-rd').value||6),start:$('g-rs').value}:null;
-  work.ret=$('g-ret').checked;work.unl=$('g-unl').checked;
+  work.warn=$('g-warn').value.trim();work.ret=$('g-ret').checked;work.unl=$('g-unl').checked;
 }
 function outsideCount(){const r=roomRect(work.room);return r?work.layout.filter(L=>!insideRoom(r,+L.x||0,+L.z||0)).length:0}
 function showCount(){
@@ -387,6 +389,7 @@ function currentExhibition(){
   readSettings();
   const e=Object.assign({},work.extra,{id,name});if(desc)e.description=desc;
   if(work.room)e.room={width:work.room.width,depth:work.room.depth,start:work.room.start};
+  if(work.warn)e.warning=work.warn;
   if(work.ret)e.recentreAtStart=true;
   if(work.unl)e.unlisted=true;
   e.layout=work.layout;return e;
@@ -402,7 +405,7 @@ async function init(){
   $('note').innerHTML=xrOK?'Place models in your room with the camera and save them as a gallery.':'Placing models needs an Android phone with Google AR support, using Chrome. You can still read this page, but the camera part will not start.';
   fillGallerySelect();$('c-setup').hidden=false;$('c-models').hidden=false;renderModels();loadChoice();
   $('g-sel').onchange=loadChoice;
-  ['g-room','g-rw','g-rd','g-rs','g-ret','g-unl'].forEach(id=>$(id).addEventListener('input',()=>{readSettings();showCount()}));
+  ['g-room','g-rw','g-rd','g-rs','g-ret','g-unl','g-warn'].forEach(id=>$(id).addEventListener('input',()=>{readSettings();showCount()}));
   $('go').onclick=()=>start($('go'));$('again').onclick=()=>start($('again'));
   const m=location.hostname.match(/^(.+)\.github\.io$/),seg=location.pathname.split('/')[1];
   $('s-repo').value=store.get('gm_repo')||(m&&seg?m[1]+'/'+seg:'');

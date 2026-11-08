@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credits</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--text:#1f1d1a;--muted:#6d6860;--accent:#8c2f39;--line:#e2ddd3}
+@media (prefers-color-scheme:dark){:root{--bg:#171513;--card:#232120;--text:#f2efe9;--muted:#a39e95;--accent:#e08a93;--line:#38352f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Georgia,serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.8rem;margin:0 0 6px}
+.muted{color:var(--muted);font-family:system-ui,sans-serif;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-top:12px;font-family:system-ui,sans-serif}
+.card b{display:block;font-size:1.02rem}.card p{margin:4px 0 0;font-size:.92rem;color:var(--muted);overflow-wrap:anywhere;white-space:pre-wrap}
+a{color:var(--accent);font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<main id="app"><h1>Credits</h1><p class="muted">Loading…</p></main>
+<script>
+const app=document.getElementById('app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Web addresses in a credit become tappable links (http/https only).
+const linkify=t=>esc(t).replace(/https?:\/\/[^\s)<>"]+/g,u=>'<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+u+'</a>');
+(async()=>{
+  let cfg;
+  try{cfg=await (await fetch('exhibits.json?t='+Date.now(),{cache:'no-store'})).json()}
+  catch(e){app.innerHTML='<h1>Credits</h1><p class="muted">Could not load exhibits.json.</p>';return}
+  const want=new URLSearchParams(location.search).get('e');
+  let list=cfg.exhibits||[],title='Credits',back='<a href="index.html">Preview mode</a> · <a href="exhibition.html">Exhibitions</a>';
+  const exs=(cfg.exhibitions||[]).concat(!cfg.exhibitions&&cfg.layout?[{id:'main',name:'Exhibition',layout:cfg.layout}]:[]);
+  const x=want?exs.find(e=>e.id===want):null;
+  if(x){const ids=new Set((x.layout||[]).map(l=>l.exhibit));list=list.filter(e=>ids.has(e.id));title='Credits: '+(x.name||x.id);back='<a href="exhibition.html?e='+encodeURIComponent(x.id)+'">← Back to '+esc(x.name||x.id)+'</a> · <a href="credits.html">All credits</a>'}
+  else list=list.filter(e=>!e.unlisted);   // the full list leaves out hidden models; an exhibition's own list shows what it uses
+  list=[...list].sort((a,b)=>String(a.title||a.id).localeCompare(String(b.title||b.id),undefined,{sensitivity:'base',numeric:true}));
+  document.title=title;
+  app.innerHTML='<h1>'+esc(title)+'</h1><p class="muted">The 3D models in this museum, and the people who made them.</p>'+
+    (list.length?list.map(e=>'<div class="card"><b>'+esc(e.title||e.id)+'</b><p>'+(e.description?linkify(e.description):'No credit listed.')+'</p></div>').join(''):'<div class="card">Nothing to show yet.</div>')+
+    '<p class="muted" style="margin-top:20px">'+back+'</p>';
+})();
+</script>
+</body>
+</html>

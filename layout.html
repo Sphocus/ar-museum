@@ -187,7 +187,8 @@ function placeAt(base,L,ex,minY){
 function floorToLocal(base,hx,hz){const b=basis(base.th),dx=hx-base.ox,dz=hz-base.oz;return {x:dx*b.rx+dz*b.rz,z:dx*b.fx+dz*b.fz}}
 function wrap180(d){d=((d+180)%360+360)%360-180;return d}
 // Layout rotation that makes a model at (px,pz) face the point (tx,tz).
-function faceRotation(base,ex,px,pz,tx,tz){return wrap180(Math.atan2(tx-px,tz-pz)*180/Math.PI-base.th*180/Math.PI-(+ex.rotation||0))}
+// The turn that makes a model at (px,pz) face the point (tx,tz). The exhibit's own front-direction fix (ex.rotation) is added on top when it is placed, so it is NOT taken off here.
+function faceRotation(base,ex,px,pz,tx,tz){return wrap180(Math.atan2(tx-px,tz-pz)*180/Math.PI-base.th*180/Math.PI)}
 const r2=v=>Math.round(v*100)/100;
 function entryFromItem(it){return {exhibit:it.ex.id,x:r2(it.L.x),y:r2(it.L.y),z:r2(it.L.z),rotation:Math.round(wrap180(it.L.rotation)),scale:Math.round(it.L.scale*1000)/1000}}
 function getExhibitions(c){

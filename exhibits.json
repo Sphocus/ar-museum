@@ -297,6 +297,15 @@
       "scale": 1,
       "rotation": 0,
       "unlisted": true
+    },
+    {
+      "id": "stack-of-christmas-gifts",
+      "title": "Stack of christmas gifts",
+      "description": "\"Christmas Tree\" by Julia Lemke (https://sketchfab.com/3d-models/christmas-tree-f1c1e890de674fccabcad59e16e8e4d5), CC-BY-4.0",
+      "model": "models/stack-of-christmas-gifts.glb",
+      "scale": 1,
+      "rotation": 0,
+      "unlisted": true
     }
   ],
   "exhibitions": [

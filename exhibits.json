@@ -250,8 +250,7 @@
       "description": "\"Christmas Toy Soldier\" by David Wigforss (https://sketchfab.com/3d-models/christmas-toy-soldier-fc347de79bee4be79c9248415f9ab5b6), CC-BY-NC-4.0",
       "model": "models/christmas-toy-soldier.glb",
       "scale": 1,
-      "rotation": 0,
-      "unlisted": true
+      "rotation": 0
     },
     {
       "id": "santa-claus-christmas-decoration",

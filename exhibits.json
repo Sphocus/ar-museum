@@ -227,6 +227,15 @@
       "scale": 1,
       "rotation": 0,
       "ground": false
+    },
+    {
+      "id": "drogon",
+      "title": "Drogon",
+      "description": "Drogon: CC-BY-NC-4.0, which means non-commercial use only. Credit: “Drogon - Dragon (Game of Thrones)” by CoreMesh3D (https://sketchfab.com/3d-models/drogon-dragon-game-of-thrones-fef9b616596541019d10677390090517), licensed CC-BY-NC-4.0.",
+      "model": "models/drogon.glb",
+      "scale": 1,
+      "rotation": 0,
+      "unlisted": true
     }
   ],
   "exhibitions": [

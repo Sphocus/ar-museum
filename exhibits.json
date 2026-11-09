@@ -288,6 +288,15 @@
       "scale": 1,
       "rotation": 0,
       "unlisted": true
+    },
+    {
+      "id": "christmas-tree",
+      "title": "Christmas tree",
+      "description": "\"Christmas Tree\" by Julia Lemke (https://sketchfab.com/3d-models/christmas-tree-f1c1e890de674fccabcad59e16e8e4d5), CC-BY-4.0",
+      "model": "models/christmas-tree.glb",
+      "scale": 1,
+      "rotation": 0,
+      "unlisted": true
     }
   ],
   "exhibitions": [

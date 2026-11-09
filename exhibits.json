@@ -274,8 +274,7 @@
       "description": "\"Spiral-plane Christmas tree – Firefly Drone Show\" by droneshow.gallery (https://sketchfab.com/3d-models/spiral-plane-christmas-tree-firefly-drone-show-47ced038f4664712bc674f855c72a61a), CC-BY-4.0",
       "model": "models/spiral-plane-christmas-tree-firefly-drone-show.glb",
       "scale": 1,
-      "rotation": 0,
-      "unlisted": true
+      "rotation": 0
     },
     {
       "id": "christmas-carousel",

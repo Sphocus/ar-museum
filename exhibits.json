@@ -236,6 +236,15 @@
       "scale": 1,
       "rotation": 0,
       "unlisted": true
+    },
+    {
+      "id": "maldraven",
+      "title": "Maldraven",
+      "description": "Maldraven: CC-BY-4.0. Credit: “MALDRAVEN // The Forsaken Oathkeeper” by Atahan3D (https://sketchfab.com/3d-models/maldraven-the-forsaken-oathkeeper-3ee02adfeb0247d49723b0181974c0a5), licensed CC-BY-4.0.",
+      "model": "models/maldraven.glb",
+      "scale": 1,
+      "rotation": 0,
+      "unlisted": true
     }
   ],
   "exhibitions": [

@@ -52,6 +52,9 @@ Saving reads the live `exhibits.json`, changes only what was edited and writes i
 "Copy the gallery text instead" gives the entry to paste into `exhibits.json` by hand. GitHub Pages takes a few minutes to publish a save.
 Galleries can be set to Unlisted, and a gallery can be deleted from the same page.
 
+## Test switches (hidden)
+- `exhibition.html?e=ID&anchors=1` pins the exhibition to a real-world anchor (less drift) and shows a small readout (how far the anchor has moved it). `&anchors=0` shows the same readout with anchors off, for comparing. Experimental; without the parameter nothing changes.
+
 ## Animated models
 Models with built-in animation (e.g. `models/raptor.glb`) play automatically in preview and exhibition mode (Android). The gallery maker shows them in a still pose.
 Credits: "Raptor" by Motion Miracles (https://sketchfab.com/3d-models/raptor-0e249b0d0800452f991de063b8fd5a2d), CC-BY-4.0. Keep the credit in the exhibit description.

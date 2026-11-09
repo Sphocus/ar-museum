@@ -25,6 +25,7 @@ ul.tick{list-style:none;padding:0;margin:8px 0}ul.tick li{padding-left:24px;posi
 a{color:var(--accent);font-family:system-ui,sans-serif}
 #xr-ui{display:none;position:fixed;inset:0;pointer-events:none;color:#fff;font-family:system-ui,sans-serif}
 #xr-hint{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;text-align:center;background:rgba(0,0,0,.65);padding:10px 14px;border-radius:12px}
+#xr-anch{white-space:pre-line;display:none;position:absolute;right:10px;top:45%;max-width:46vw;background:rgba(0,0,0,.65);padding:6px 10px;border-radius:10px;font-size:12px;line-height:1.35;pointer-events:none}
 #xr-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;justify-content:center;pointer-events:auto}
 #xr-info{display:none;position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-height:45vh;overflow:auto;background:rgba(0,0,0,.8);border-radius:14px;padding:14px 16px;pointer-events:auto}
 #xr-info b{display:block;font-size:17px;margin-bottom:4px;padding-right:56px}
@@ -42,6 +43,7 @@ a{color:var(--accent);font-family:system-ui,sans-serif}
 <main id="app"><h1>Exhibition</h1><p class="muted">Loading…</p></main>
 <div id="xr-ui">
   <div id="xr-hint"></div>
+  <div id="xr-anch"></div>
   <div id="xr-info"><button id="i-close">Close</button><button id="i-anim">Pause</button><b id="i-title"></b><p id="i-desc"></p></div>
   <div id="xr-bar"><button id="e-centre">Re-centre</button><button id="e-labels" disabled>Labels</button><button id="e-exit">Exit</button></div>
 </div>
@@ -139,9 +141,14 @@ document.getElementById('e-centre').onclick=()=>{
   const f=cur.fwd,l=Math.hypot(f.x,f.z);
   if(l<MIN_LEVEL){say('Raise your phone a little and look ahead, the way the exhibition should open, then tap Re-centre.',7000);return}
   cur.base={ox:cur.cam.x,oy:cur.base.oy,oz:cur.cam.z,th:Math.atan2(-f.x/l,-f.z/l)};
-  cur.layoutAll();cur.markerUntil=0;
+  cur.layoutAll();cur.markerUntil=0;cur.pin=true;
   say('Re-centred: the start spot is now where you stand, opening the way you face.',6000);
 };
+// TEST SWITCH: ?anchors=1 pins the exhibition to a real-world anchor so the phone's own tracking corrections move it with the room (less drift).
+// ?anchors=0 shows the same readout with anchors off, for comparing. Without the parameter nothing changes.
+const ANCH_Q=new URLSearchParams(location.search).get('anchors'),anchorsOn=ANCH_Q==='1',anchorShow=ANCH_Q==='1'||ANCH_Q==='0';
+const anchEl=document.getElementById('xr-anch');
+function setAnch(t){if(!anchorShow)return;anchEl.textContent=t;anchEl.style.display='block'}
 const RETURN_DIST=2;   // metres from the start spot beyond which Re-centre asks the visitor to walk back (only for exhibitions with recentreAtStart)
 const MIN_LEVEL=0.5;   // cos(60 degrees): the phone may be tilted up or down by up to 60 degrees when tapping Re-centre (a normal 30-45 degree placement tilt is fine). 0.87 = 30 degrees (stricter), 0.3 = 72 degrees (forgiving).
 const START_HINT='Stand on your start spot. Aim at the floor about 2 m ahead, toward where the exhibition should open, then tap.';
@@ -227,6 +234,30 @@ async function start(btn,mini){
         lb.position.set((bx.min.x+bx.max.x)/2,bx.max.y+(0.03+0.15*k),(bx.min.z+bx.max.z)/2);   // just above the top of the model
       }
     };
+    // Anchor test: pin the start spot to the real world and let the phone's own tracking corrections move the exhibition with it.
+    const anchorStep=frame=>{
+      const ref=renderer.xr.getReferenceSpace();
+      if(state.pin){
+        state.pin=false;const old=state.anchor;state.anchor=null;
+        if(!frame.createAnchor){setAnch('Anchors: not supported on this phone');state.anchorBad=true;return}
+        const b=state.base,home={ox:b.ox,oy:b.oy,oz:b.oz,th:b.th};
+        frame.createAnchor(new XRRigidTransform({x:b.ox,y:b.oy,z:b.oz},{x:0,y:0,z:0,w:1}),ref).then(a=>{
+          if(old&&old.delete)try{old.delete()}catch(e){}
+          state.anchor=a;state.anchInit=false;state.anchTh=home.th;state.anchHome=home;state.anchorN=(state.anchorN||0)+1;setAnch('Anchors: pinned')
+        }).catch(e=>{setAnch('Anchors: could not pin ('+(e&&e.message?e.message:e)+')')});
+        return}
+      if(!state.anchor)return;
+      const p=frame.getPose(state.anchor.anchorSpace,ref);
+      if(!p){setAnch('Anchors: lost tracking, holding the last position');return}
+      const A=p.transform.matrix;
+      if(!state.anchInit){state.anchInit=true;state.anchTh=state.anchHome.th-Math.atan2(A[8],A[10])}   // in case the phone gives the anchor a turn of its own
+      const sn=Math.sin(state.anchTh),cs=Math.cos(state.anchTh);
+      const nx=A[12],ny=A[13],nz=A[14],nth=Math.atan2(sn*A[0]+cs*A[8],sn*A[2]+cs*A[10]);
+      const b=state.base,dth=Math.abs(Math.atan2(Math.sin(nth-b.th),Math.cos(nth-b.th)));
+      if(Math.hypot(nx-b.ox,nz-b.oz)>0.0005||Math.abs(ny-b.oy)>0.0005||dth>0.0005){state.base={ox:nx,oy:ny,oz:nz,th:nth};state.layoutAll()}
+      const h=state.anchHome,shift=Math.hypot(nx-h.ox,nz-h.oz),turn=Math.abs(Math.atan2(Math.sin(nth-h.th),Math.cos(nth-h.th)))*180/Math.PI;
+      setAnch('Anchors: pinned\nmoved '+(shift*100).toFixed(1)+' cm, turned '+turn.toFixed(1)+'°\n(since placing)')
+    };
     const controller=renderer.xr.getController(0);scene.add(controller);
     const ray=new THREE.Raycaster();
     controller.addEventListener('select',()=>{
@@ -249,7 +280,7 @@ async function start(btn,mini){
       const th=Math.atan2(-fx,-fz);
       if(mini){   // base = the tapped spot on the table; the layout centre lands there, facing away from the visitor
         state.base={ox:hit.x,oy:hit.y,oz:hit.z,th};state.moving=false;
-        if(wasMoving){state.layoutAll();moveBtn(false);say('Moved. Walk around it, or tap Move to put it somewhere else.',6000);return}
+        if(wasMoving){state.layoutAll();state.pin=true;moveBtn(false);say('Moved. Walk around it, or tap Move to put it somewhere else.',6000);return}
       }else state.base={ox:cam.x,oy:hit.y,oz:cam.z,th};                         // start spot = where you stand, floor height from the hit
       if(mini){   // size of the layout (with a margin) decides how small to make it
         const xs=items.map(i=>+i.L.x||0),zs=items.map(i=>+i.L.z||0);
@@ -265,25 +296,27 @@ async function start(btn,mini){
         const sc=(+ex.scale||1)*(+L.scale||1);o.scale.setScalar(sc);
         const sh=makeShadow(),lb=makeLabel(ex.title||ex.id);state.objs.push({o,L,ex,minY,sc,sh,lb,lbox:skinnedBox(o),mixer:mx,paused:false});group.add(o);group.add(sh);group.add(lb);
       }
-      state.layoutAll();
+      state.layoutAll();state.pin=true;
       state.placed=true;labelBtn.disabled=false;
       if(mini){moveBtn(false);say('Miniature placed. Walk around it. Tap a model to read about it, or tap Move to put it somewhere else.',10000);return}
       say('Exhibition placed. Walk around, and tap a model to read about it. If it drifts or looks off, stand on your start spot, face the way it should open, and tap “Re-centre”. If the floor height is wrong, tap Exit and start again.',12000);
     });
 
     ui.style.display='block';say(mini?'Aim at a table or the floor where the miniature should go, then tap.':START_HINT);
-    const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:ui}});
+    const session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:anchorsOn?['dom-overlay','anchors']:['dom-overlay'],domOverlay:{root:ui}});
     state.session=session;
     renderer.xr.setReferenceSpaceType('local');
     await renderer.xr.setSession(session);
     const viewer=await session.requestReferenceSpace('viewer');
     const source=await session.requestHitTestSource({space:viewer});
     session.addEventListener('end',()=>{
-      renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();labelBtn.disabled=true;labelBtn.classList.remove('on');cur=null;renderer.dispose();
+      renderer.setAnimationLoop(null);ui.style.display='none';hideInfo();labelBtn.disabled=true;labelBtn.classList.remove('on');anchEl.style.display='none';cur=null;renderer.dispose();
       btn.disabled=false;btn.textContent=label;setBusy(false);centreBtn.textContent='Re-centre';
     });
     renderer.setAnimationLoop((t,frame)=>{
       if(frame){const vp=frame.getViewerPose(renderer.xr.getReferenceSpace());if(vp){const t=vp.transform.position,q=vp.transform.orientation;(state.cam||(state.cam=new THREE.Vector3())).set(t.x,t.y,t.z);state.fwd.set(0,0,-1).applyQuaternion(new THREE.Quaternion(q.x,q.y,q.z,q.w))}}
+      if(frame&&anchorsOn&&state.placed)anchorStep(frame);
+      else if(anchorShow&&!anchorsOn&&state.placed&&!state.offShown){state.offShown=true;setAnch('Anchors: OFF (test)')}
       if(frame&&(!state.placed||state.moving)){
         const hits=frame.getHitTestResults(source);
         if(hits.length){const pose=hits[0].getPose(renderer.xr.getReferenceSpace());reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix)}

@@ -263,6 +263,15 @@
       "scale": 1,
       "rotation": 0,
       "unlisted": true
+    },
+    {
+      "id": "regalos-navidad-christmas-gifts",
+      "title": "Regalos navidad christmas gifts",
+      "description": "\"Regalos Navidad | Christmas Gifts\" by Josean_3dev (https://sketchfab.com/3d-models/regalos-navidad-christmas-gifts-06d76f3f21e64a229c2c40067c9b352e), CC-BY-4.0",
+      "model": "models/regalos-navidad-christmas-gifts.glb",
+      "scale": 1,
+      "rotation": 0,
+      "unlisted": true
     }
   ],
   "exhibitions": [

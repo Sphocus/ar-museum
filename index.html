@@ -54,6 +54,22 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 // Optional per-exhibit "solid": true stops see-through (blended) materials from showing parts of the model through each other.
 const solid=(o,ex)=>{if(ex.solid)o.traverse(c=>{if(c.isMesh)[].concat(c.material).forEach(m=>{m.transparent=false;m.depthWrite=true;m.alphaTest=0.5;m.needsUpdate=true})})};
+// Which animation a model plays. A file can hold many clips (and often a static pose first); playing them all at once would tangle the model.
+// An exhibit's optional "animation" setting (a clip name, part of a name, or its number) wins; otherwise static/pose/very short clips are skipped and an idle-like one is preferred.
+function pickClip(clips,ex){
+  clips=clips||[];if(!clips.length)return[];
+  if(clips.length===1&&!(ex&&ex.animation===false))return clips;   // a file with a single animation: just play it
+  const want=ex&&ex.animation!=null&&ex.animation!==''?ex.animation:null;
+  if(want!=null){
+    if(typeof want==='number'||/^\d+$/.test(String(want))){const c=clips[+want];if(c)return[c]}
+    const w=String(want).toLowerCase();
+    const c=clips.find(x=>String(x.name||'').toLowerCase()===w)||clips.find(x=>String(x.name||'').toLowerCase().includes(w));if(c)return[c];
+  }
+  const skip=/(^|[^a-z])(static|tpose|t[-_ ]pose|bind|ref|reference|rest)([^a-z]|$)/i;
+  const ok=clips.filter(x=>{const n=String(x.name||'').split('|').pop();return !(x.duration<0.2)&&(!skip.test(n)||/idle|stand|breath/i.test(n))});
+  if(!ok.length)return[];
+  return[ok.find(x=>/idle|stand|breath|loop|wait/i.test(String(x.name||'')))||ok[0]];
+}
 // Lowest point of a model at its current pose. Skinned (animated) models are measured on their real posed vertices, because a plain bounding box can be wrong for them.
 function lowestY(o){o.updateMatrixWorld(true);let m=Infinity;const v=new THREE.Vector3();
   try{o.traverse(c=>{if(c.isSkinnedMesh&&c.applyBoneTransform){c.skeleton.update();const p=c.geometry.attributes.position;for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.applyBoneTransform(i,v);v.applyMatrix4(c.matrixWorld);if(v.y<m)m=v.y}}else if(c.isMesh){const y=new THREE.Box3().setFromObject(c).min.y;if(y<m)m=y}})}catch(e){m=Infinity}
@@ -138,7 +154,7 @@ async function startAR(ex,btn){
     btn.disabled=true;btn.textContent='Loading model…';
     const loader=new GLTFLoader(),cache=new Map();   // one download per different model, even if it is placed twice
     const getModel=e=>{
-      if(!cache.has(e.id))cache.set(e.id,loader.loadAsync(e.model).then(gl=>{solid(gl.scene,e);return {template:gl.scene,clips:gl.animations||[]}}));
+      if(!cache.has(e.id))cache.set(e.id,loader.loadAsync(e.model).then(gl=>{solid(gl.scene,e);return {template:gl.scene,clips:pickClip(gl.animations,e)}}));
       return cache.get(e.id).catch(err=>{cache.delete(e.id);throw err});
     };
     let first;

@@ -258,8 +258,7 @@
       "description": "\"Santa Claus Christmas Decoration\" by Benny Andersson (https://sketchfab.com/3d-models/santa-claus-christmas-decoration-8ac28ab85071408fb26af6a0c84959e0), CC-BY-4.0",
       "model": "models/santa-claus-christmas-decoration.glb",
       "scale": 1,
-      "rotation": 0,
-      "unlisted": true
+      "rotation": 0
     },
     {
       "id": "regalos-navidad-christmas-gifts",
